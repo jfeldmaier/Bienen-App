@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}{{ volk.name }} · Bienen-App{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h4 mb-0 d-flex align-items-center">
+                        🐝 {{ volk.name }}
+                        {% if volk.queen_color %}
+                            <span class="queen-marker color-{{ volk.queen_color }}" title="Königinnenfarbe: {{ queen_colors[volk.queen_color] }}">
+                                {%- if volk.queen_number -%}{{ volk.queen_number }}{%- endif -%}
+                            </span>
+                        {% endif %}
+                    </h1>
+                </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Standort</dt>
+                    <dd class="col-sm-7">{{ volk.location or '—' }}</dd>
+                    <dt class="col-sm-5">Königin geboren</dt>
+                    <dd class="col-sm-7">{{ volk.queen_birth or '—' }}</dd>
+                                        <dt class="col-sm-5">Status</dt>
+                                        <dd class="col-sm-7">
+                                                <form method="POST" action="{{ url_for('volk_status_aendern', volk_id=volk.id) }}" class="d-inline">
+                                                    <div class="btn-group" role="group" aria-label="Status ändern">
+                                                        {% for status, label, color in [('stark','Stark','success'),('mittel','Mittel','secondary'),('schwach','Schwach','warning')] %}
+                                                            <button type="submit" name="status" value="{{ status }}" class="btn btn-sm btn-outline-{{ color }}{% if volk.status==status %} active text-white bg-{{ color }}{% endif %}">{{ label }}</button>
+                                                        {% endfor %}
+                                                    </div>
+                                                </form>
+                                        </dd>
+                    <dt class="col-sm-5">Notizen</dt>
+                    <dd class="col-sm-7">{{ volk.notes or '—' }}</dd>
+                </dl>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('volk_bearbeiten', volk_id=volk.id) }}" class="btn btn-outline-secondary btn-sm">Bearbeiten</a>
+                    <form method="POST" action="{{ url_for('volk_loeschen', volk_id=volk.id) }}" class="d-inline" onsubmit="return confirm('Wirklich löschen?')">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Löschen</button>
+                    </form>
+                    <a href="{{ url_for('neue_inspektion') }}?colony_id={{ volk.id }}" class="btn btn-primary btn-sm ms-auto">➕ Neue Inspektion</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h2 class="h5 mb-0">Inspektionen</h2>
+            </div>
+            <div class="card-body p-0">
+                {% if inspektionen %}
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th class="text-center">Königin</th>
+                                <th class="text-center">Volksstärke</th>
+                                <th class="text-center">Vitalität</th>
+                                <th class="text-center">Sanftmut</th>
+                                <th class="text-center">Brut</th>
+                                <th>Beobachtungen</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for insp in inspektionen %}
+                            <tr>
+                                <td>{{ insp.date.strftime('%d.%m.%Y') }}</td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill {% if insp.queen_seen %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ '✓' if insp.queen_seen else '✗' }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="rating">
+                                        {% for i in range(1, 6) %}
+                                            <span class="star {% if i <= (insp.volksstaerke or 0) %}filled{% endif %}">★</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="rating">
+                                        {% for i in range(1, 6) %}
+                                            <span class="star {% if i <= (insp.vitalitaet or 0) %}filled{% endif %}">★</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="rating">
+                                        {% for i in range(1, 6) %}
+                                            <span class="star {% if i <= (insp.sanftmut or 0) %}filled{% endif %}">★</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="rating">
+                                        {% for i in range(1, 6) %}
+                                            <span class="star {% if i <= (insp.brut or 0) %}filled{% endif %}">★</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td class="text-break" style="max-width: 300px;">{{ insp.notes or '—' }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('inspektion_detail', id=insp.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Details anzeigen">
+                                            <svg width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                            </svg>
+                                        </a>
+                                        <a href="{{ url_for('inspektion_bearbeiten', id=insp.id) }}" 
+                                           class="btn btn-sm btn-outline-secondary" 
+                                           title="Bearbeiten">
+                                            <svg width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                                                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                                            </svg>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('inspektion_loeschen', id=insp.id) }}" 
+                                              class="d-inline" 
+                                              onsubmit="return confirm('Inspektion wirklich löschen?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Löschen">
+                                                <svg width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Bilder-Zeile für diese Inspektion -->
+                            {% if insp.images %}
+                            <tr class="table-secondary" style="background-color: #f8f9fa;">
+    <td colspan="8">
+        <div class="mt-2">
+            <small class="text-muted"><strong>📸 Bilder:</strong></small>
+            <div class="d-flex gap-2 flex-wrap mt-2">
+                {% for image in insp.images %}
+                <div class="position-relative" style="max-width: 120px;">
+                    <a href="{{ url_for('uploaded_inspection_image', date=image.uploaded_at.strftime('%Y%m%d'), filename=image.filename) }}"
+                       target="_blank" 
+                       title="Bild in voller Größe anzeigen">
+                        <img src="{{ url_for('uploaded_inspection_image', date=image.uploaded_at.strftime('%Y%m%d'), filename=image.filename) }}" 
+                             alt="Inspektionsfoto" 
+                             class="img-thumbnail" 
+                             style="width: 100%; height: auto; max-height: 100px; object-fit: cover;"
+                             title="Uploaded: {{ image.uploaded_at.strftime('%d.%m.%Y %H:%M') }}">
+                    </a>
+                    <small class="d-block text-muted text-center mt-1" style="font-size: 0.75rem;">
+                        {{ image.uploaded_at.strftime('%d.%m') }}
+                    </small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </td>
+</tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div class="p-3 text-muted">Keine Inspektionen vorhanden.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

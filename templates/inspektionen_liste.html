@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Inspektionen · Bienen-App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Inspektionen</h1>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-danger" id="delete-selected-btn" style="display: none;" onclick="deleteSelected()">
+            🗑️ Ausgewählte löschen
+        </button>
+        <a href="{{ url_for('batch_inspektion') }}" class="btn btn-secondary">➕ Batch-Inspektion</a>
+        <a href="{{ url_for('neue_inspektion') }}" class="btn btn-primary">➕ Neue Inspektion</a>
+    </div>
+</div>
+
+<form id="delete-form" action="{{ url_for('inspektionen_loeschen') }}" method="POST">
+{% if inspektionen_by_day %}
+    {% set weekdays = {
+        'Monday': 'Montag',
+        'Tuesday': 'Dienstag', 
+        'Wednesday': 'Mittwoch',
+        'Thursday': 'Donnerstag',
+        'Friday': 'Freitag',
+        'Saturday': 'Samstag',
+        'Sunday': 'Sonntag'
+    } %}
+    {% for day, inspektionen in inspektionen_by_day %}
+    <div class="mb-3">
+        <h6 class="text-muted mb-2 ps-2">{{ weekdays[day.strftime('%A')] }}, {{ day.strftime('%d.%m.%Y') }}</h6>
+        <div class="list-group">
+            {% for insp in inspektionen %}
+            <div class="list-group-item list-group-item-action p-0">
+                <div class="d-flex align-items-center">
+                    <!-- Checkbox -->
+                    <div class="p-2">
+                        <input class="form-check-input" type="checkbox" name="inspection_ids" value="{{ insp.id }}" id="check-{{ insp.id }}" onchange="updateDeleteButton()">
+                    </div>
+                    
+                    <!-- Hauptinhalt (Info) -->
+                    <div class="flex-grow-1 p-2" style="cursor: pointer; min-width: 0;" onclick="window.location='{{ url_for('inspektion_detail', id=insp.id) }}'">
+                        <strong class="d-block text-truncate">
+                            {{ insp.colony.name }}
+                            {% if insp.colony.queen_color %}
+                                <span class="queen-marker color-{{ insp.colony.queen_color }}" 
+                                      style="font-size: 0.7rem; width: 16px; height: 16px; margin-left: 4px;"
+                                      title="Königinnenfarbe: {{ queen_colors[insp.colony.queen_color] }}">
+                                    {%- if insp.colony.queen_number -%}{{ insp.colony.queen_number }}{%- endif -%}
+                                </span>
+                            {% endif %}
+                        </strong>
+                        
+                        <!-- Kompakte Info-Zeile -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap mt-1" style="font-size: 0.85rem;">
+                            {% if insp.volksstaerke %}
+                            <div class="rating" title="Volksstärke: {{ insp.volksstaerke }}/5">
+                                {% for i in range(5) %}
+                                    <span class="star{% if i < insp.volksstaerke %} filled{% endif %}" style="font-size: 0.75rem;">★</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if insp.honey_yield %}
+                            <span class="text-muted">🍯 {{ '%.1f'|format(insp.honey_yield|float) }}kg</span>
+                            {% endif %}
+                            
+                            <span class="badge {% if insp.queen_seen %}bg-success{% else %}bg-secondary{% endif %}" style="font-size: 0.7rem;">
+                                {{ '👑' if insp.queen_seen else '👑✗' }}
+                            </span>
+                            
+                            {% if insp.varroa_check %}
+                            <span class="badge bg-info" style="font-size: 0.7rem;">🔍</span>
+                            {% endif %}
+                            
+                            {% if insp.drohnenbrut_geschnitten %}
+                            <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">🐝</span>
+                            {% endif %}
+                            
+                            {% if insp.images and insp.images|length > 1 %}
+                            <span class="text-muted" style="font-size: 0.75rem;">📸 {{ insp.images|length }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if insp.notes %}
+                        <small class="text-muted d-block text-truncate mt-1" style="max-width: 500px;">{{ insp.notes }}</small>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Thumbnail (nur wenn Bild vorhanden) -->
+                    {% if insp.images and insp.images|length > 0 %}
+                    <div class="inspection-thumbnail p-2" onclick="window.location='{{ url_for('inspektion_detail', id=insp.id) }}'" style="cursor: pointer;">
+                        <img src="{{ url_for('uploaded_inspection_image', date=insp.date.strftime('%Y%m%d'), filename=insp.images[0].filename) }}" 
+                             alt="Inspektion" 
+                             class="img-thumbnail"
+                             style="width: 60px; height: 60px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Aktionen (untereinander) -->
+                    <div class="d-flex flex-column gap-1 p-2" onclick="event.stopPropagation()">
+                        <a href="{{ url_for('inspektion_bearbeiten', id=insp.id) }}" 
+                           class="btn btn-outline-primary" 
+                           title="Bearbeiten"
+                           style="padding: 0.5rem 0.75rem; min-width: 42px;">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <button type="button" 
+                                class="btn btn-outline-danger" 
+                                title="Löschen"
+                                style="padding: 0.5rem 0.75rem; min-width: 42px;"
+                                onclick="event.stopPropagation(); if(confirm('Inspektion wirklich löschen?')) document.getElementById('delete-form-{{ insp.id }}').submit();">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="delete-form-{{ insp.id }}" action="{{ url_for('inspektion_loeschen', id=insp.id) }}" method="POST" class="d-none"></form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="text-center text-muted my-5">
+    <p>Noch keine Inspektionen vorhanden.</p>
+    <a href="{{ url_for('neue_inspektion') }}" class="btn btn-primary">➕ Erste Inspektion anlegen</a>
+</div>
+{% endif %}
+</form>
+
+<script>
+function updateDeleteButton() {
+    const checkboxes = document.querySelectorAll('input[name="inspection_ids"]:checked');
+    const deleteBtn = document.getElementById('delete-selected-btn');
+    if (checkboxes.length > 0) {
+        deleteBtn.style.display = 'block';
+        deleteBtn.textContent = `🗑️ ${checkboxes.length} Inspektion${checkboxes.length > 1 ? 'en' : ''} löschen`;
+    } else {
+        deleteBtn.style.display = 'none';
+    }
+}
+
+function deleteSelected() {
+    const checkboxes = document.querySelectorAll('input[name="inspection_ids"]:checked');
+    const count = checkboxes.length;
+    
+    if (count === 0) {
+        alert('Bitte wählen Sie mindestens eine Inspektion aus.');
+        return;
+    }
+    
+    if (confirm(`Möchten Sie wirklich ${count} Inspektion${count > 1 ? 'en' : ''} unwiderruflich löschen?`)) {
+        document.getElementById('delete-form').submit();
+    }
+}
+</script>
+
+{% endblock %}

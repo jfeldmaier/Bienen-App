@@ -1,0 +1,58 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+{% block title %}Start · Bienen-App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Übersicht deiner Völker</h1>
+  <a href="{{ url_for('neue_inspektion') }}" class="btn btn-primary">Neue Inspektion</a>
+</div>
+
+{% if voelker %}
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+    {% for volk in voelker %}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <h2 class="h5 card-title mb-1">
+                <a href="{{ url_for('volk_detail', volk_id=volk.id) }}" class="text-decoration-none">
+                  {{ volk.name }}
+                </a>
+              </h2>
+              <span class="badge bg-{{ 'success' if volk.status=='stark' else ('secondary' if volk.status=='mittel' else 'warning') }}">
+                {{ volk.status or '—' }}
+              </span>
+            </div>
+            <p class="text-muted mb-2">
+              Standort: {{ volk.location or '—' }}
+            </p>
+
+            <ul class="list-unstyled small mb-0">
+              <li>
+                Letzte Inspektion:
+                {% if volk.inspections and volk.inspections|length > 0 %}
+                  {{ (volk.inspections|sort(attribute='date')|last).date }}
+                {% else %}
+                  —
+                {% endif %}
+              </li>
+              <li>Inspektionen gesamt: {{ volk.inspections|length }}</li>
+            </ul>
+          </div>
+          <div class="card-footer bg-white d-flex gap-2">
+            <a href="{{ url_for('volk_detail', volk_id=volk.id) }}" class="btn btn-outline-primary btn-sm w-100">Details</a>
+            <a href="{{ url_for('neue_inspektion') }}?colony_id={{ volk.id }}" class="btn btn-outline-warning btn-sm w-100">Neue Inspektion</a>
+            <a href="{{ url_for('volk_bearbeiten', volk_id=volk.id) }}" class="btn btn-outline-secondary btn-sm w-100">Bearbeiten</a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center py-5">
+    <p class="lead">Noch keine Völker erfasst.</p>
+    <a href="{{ url_for('neues_volk') }}" class="btn btn-primary">Jetzt erstes Volk anlegen</a>
+  </div>
+{% endif %}
+{% endblock %}

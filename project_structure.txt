@@ -1,0 +1,36 @@
+bienenapp/
+├── app.py               # Hauptdatei mit Flask-Server und allen Routen
+├── models.py            # Datenbankmodelle (BeeColony, Inspection, InspectionImage)
+├── forms.py             # Eingabeformulare (BeeColonyForm, InspectionForm, BatchInspectionForm)
+├── upload_utils.py      # Hilfsfunktionen für Bild-Uploads
+├── migrate.py           # Migrations-Helper-Script
+├── templates/           # HTML-Dateien (Jinja2)
+│   ├── base.html
+│   ├── index.html
+│   ├── voelker_liste.html
+│   ├── volk_detail.html
+│   ├── volk_form.html
+│   ├── inspektionen_liste.html
+│   ├── inspektion_detail.html
+│   ├── inspektion_form.html
+│   └── batch_inspektion_form.html
+├── static/              # CSS, Bilder
+│   ├── styles.css
+│   └── favicon.svg
+├── var/                 # Variable Daten
+│   ├── app-instance/
+│   │   └── bienen.db    # SQLite-Datenbank
+│   └── uploads/         # Hochgeladene Inspektionsbilder
+├── migrations/          # Alembic-Migrationen
+├── requirements.txt     # Python-Abhängigkeiten
+└── README.md
+
+
+Wichtige Abhängigkeiten:
+
+Flask==3.1.1
+Flask-Migrate==4.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.2
+SQLAlchemy==2.0.42
+WTForms==3.2.1

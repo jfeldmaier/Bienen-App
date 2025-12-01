@@ -1,0 +1,72 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Bienen-App{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Wichtig fürs Smartphone -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('home') }}">🐝 Bienen-App</a>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('inspektionen_liste') }}" class="btn btn-warning btn-sm d-lg-none" title="Inspektionen">
+          <i class="bi bi-clipboard-check-fill"></i>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
+      <div id="navMain" class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint=='home' %}active{% endif %}" href="{{ url_for('home') }}">Start</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint=='voelker_liste' %}active{% endif %}" href="{{ url_for('voelker_liste') }}">Völker</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint=='inspektionen_liste' %}active{% endif %}" href="{{ url_for('inspektionen_liste') }}">Inspektionen</a>
+          </li>
+        </ul>
+        <div class="d-flex gap-2">
+          <a class="btn btn-outline-light btn-sm" href="{{ url_for('batch_inspektion') }}">Batch-Inspektion</a>
+          <a class="btn btn-warning btn-sm" href="{{ url_for('neue_inspektion') }}">Neue Inspektion</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-3">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if category=='success' else 'info' }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="bg-light py-3">
+    <div class="container text-muted small">
+      © {{ 2025 }} Bienen-App
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
+

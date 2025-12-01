@@ -1,0 +1,101 @@
+<!-- templates/volk_form.html -->
+{% extends "base.html" %}
+{% block title %}Neues Volk · Bienen-App{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">🐝 Neues Bienenvolk</h1>
+<form method="POST" class="needs-validation" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="form-floating mb-3">
+    {{ form.name(class="form-control", id="name", placeholder="Name") }}
+    <label for="name">Name</label>
+  </div>
+
+  <div class="form-floating mb-3">
+    {{ form.location(class="form-control", id="location", placeholder="Standort") }}
+    <label for="location">Standort</label>
+  </div>
+
+  <div class="form-floating mb-3">
+    {{ form.queen_birth(class="form-control", id="queen_birth", placeholder="Geburtsdatum der Königin") }}
+    <label for="queen_birth">Geburtsdatum der Königin</label>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Farbe der Königinnenmarkierung</label>
+    <div class="queen-color-selector">
+      {% for value, label in form.queen_color.choices %}
+        <div class="color-option color-{{ value }}" 
+             onclick="selectColor('{{ value }}')"
+             id="color-{{ value }}"
+             role="button"
+             title="{{ label }}">
+        </div>
+      {% endfor %}
+    </div>
+    {{ form.queen_color(class="d-none", id="queen_color") }}
+  </div>
+
+  <div class="form-floating mb-3">
+    {{ form.queen_number(class="form-control", id="queen_number", placeholder="Nummer der Königin") }}
+    <label for="queen_number">Nummer der Königin</label>
+  </div>
+
+  <div class="mb-3">
+    <label for="status" class="form-label">Status</label>
+    {{ form.status(class="form-select", id="status") }}
+  </div>
+
+  <div class="form-floating mb-3">
+    {{ form.notes(class="form-control", placeholder="Notizen") }}
+    <label for="notes">Notizen</label>
+  </div>
+
+<script>
+function selectColor(color) {
+    // Entferne die selected-Klasse von allen Optionen
+    document.querySelectorAll('.color-option').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Füge die selected-Klasse zur gewählten Option hinzu
+    document.getElementById('color-' + color).classList.add('selected');
+    
+    // Setze den Wert des versteckten Eingabefelds
+    document.getElementById('queen_color').value = color;
+}
+
+// Wähle die gespeicherte Farbe beim Laden der Seite
+document.addEventListener('DOMContentLoaded', function() {
+    const savedColor = document.getElementById('queen_color').value;
+    if (savedColor) {
+        selectColor(savedColor);
+    }
+});
+</script>
+
+  <button type="submit" class="btn btn-primary">➕ Volk speichern</button>
+  <a href="{{ url_for('home') }}" class="btn btn-secondary">Zurück</a>
+</form>
+{% endblock %}
+
+
+<!-- 
+<!doctype html>
+<html>
+<head><title>Neues Bienenvolk</title></head>
+<body>
+    <h1>{{ 'Bearbeite Bienenvolk' if bearbeiten else 'Neues Bienenvolk erfassen' }}</h1>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        {{ form.name.label }} {{ form.name() }}<br>
+        {{ form.location.label }} {{ form.location() }}<br>
+        {{ form.queen_birth.label }} {{ form.queen_birth() }}<br>
+        {{ form.status.label }} {{ form.status() }}<br>
+        {{ form.notes.label }} {{ form.notes() }}<br>
+        {{ form.submit() }}
+    </form>
+</body>
+</html>
+ -->

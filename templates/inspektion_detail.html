@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Inspektion {{ inspektion.date.strftime('%d.%m.%Y') }} · Bienen-App{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header mit Volk-Info -->
+    <div class="row mb-4">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <h1 class="h4 mb-0">🐝 {{ inspektion.colony.name }}</h1>
+                        {% if inspektion.colony.queen_color %}
+                            <span class="queen-marker color-{{ inspektion.colony.queen_color }}" 
+                                  title="Königinnenfarbe: {{ queen_colors[inspektion.colony.queen_color] }}">
+                                {%- if inspektion.colony.queen_number -%}{{ inspektion.colony.queen_number }}{%- endif -%}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <small class="text-light">📅 {{ inspektion.date.strftime('%d.%m.%Y') }}</small>
+                </div>
+
+                <div class="card-body">
+                    <!-- Basis-Felder -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted small">📍 Standort</h5>
+                            <p class="mb-3">{{ inspektion.colony.location or '—' }}</p>
+
+                            <h5 class="text-muted small">👑 Königin</h5>
+                            <p class="mb-3">
+                                {% if inspektion.queen_seen %}
+                                    <span class="badge bg-success">✓ Gesichtet</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">✗ Nicht gesichtet</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted small">Status</h5>
+                            <p class="mb-3">
+                                {% if inspektion.colony.status %}
+                                    <span class="badge bg-{{ 'success' if inspektion.colony.status == 'stark' else 'warning' if inspektion.colony.status == 'schwach' else 'secondary' }}">
+                                        {{ inspektion.colony.status|title }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </p>
+
+                            <h5 class="text-muted small">🍯 Honigertrag</h5>
+                            <p class="mb-0">
+                                {% if inspektion.honey_yield %}
+                                    <strong>{{ '%.1f'|format(inspektion.honey_yield|float) }} kg</strong>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Bewertungen (Sterne) -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <h5 class="text-muted small">⭐ Volksstärke</h5>
+                            <div class="rating">
+                                {% for i in range(1, 6) %}
+                                    <span class="star {% if i <= (inspektion.volksstaerke or 0) %}filled{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">{{ inspektion.volksstaerke or '—' }}/5</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-muted small">💚 Sanftmut</h5>
+                            <div class="rating">
+                                {% for i in range(1, 6) %}
+                                    <span class="star {% if i <= (inspektion.sanftmut or 0) %}filled{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">{{ inspektion.sanftmut or '—' }}/5</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-muted small">⚡ Vitalität</h5>
+                            <div class="rating">
+                                {% for i in range(1, 6) %}
+                                    <span class="star {% if i <= (inspektion.vitalitaet or 0) %}filled{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">{{ inspektion.vitalitaet or '—' }}/5</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-muted small">🥚 Brut</h5>
+                            <div class="rating">
+                                {% for i in range(1, 6) %}
+                                    <span class="star {% if i <= (inspektion.brut or 0) %}filled{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">{{ inspektion.brut or '—' }}/5</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Zusatzfelder -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted small">🍚 Mittelwände</h5>
+                            <p class="mb-3">{{ inspektion.mittelwaende or '—' }}</p>
+
+                            <h5 class="text-muted small">🥣 Brutwaben</h5>
+                            <p class="mb-3">{{ inspektion.brutwaben or '—' }}</p>
+
+                            <h5 class="text-muted small">🏺 Futterwaben</h5>
+                            <p class="mb-0">{{ inspektion.futterwaben or '—' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted small">🔍 Varroa-Kontrolle</h5>
+                            <p class="mb-3">
+                                {% if inspektion.varroa_check %}
+                                    <small class="text-muted">{{ inspektion.varroa_check }}</small>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </p>
+
+                            <h5 class="text-muted small">🐝 Drohnenbrut geschnitten</h5>
+                            <p class="mb-0">
+                                {% if inspektion.drohnenbrut_geschnitten %}
+                                    <span class="badge bg-success">✓ Ja</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">✗ Nein</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Beobachtungen -->
+                    {% if inspektion.notes %}
+                    <div class="mb-4">
+                        <h5 class="text-muted small">📝 Beobachtungen</h5>
+                        <div class="p-3 bg-light rounded border-start border-4 border-info">
+                            <p class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;">{{ inspektion.notes }}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    {% endif %}
+
+                    <!-- Bilder -->
+                    {% if inspektion.images %}
+                    <div class="mb-4">
+                        <h5 class="text-muted small mb-3">📸 Inspektionsbilder ({{ inspektion.images|length }})</h5>
+                        <div class="row g-3">
+                            {% for image in inspektion.images %}
+                            <div class="col-md-4 col-lg-3">
+                                <div class="card border-0 overflow-hidden shadow-sm h-100">
+                                   <a href="{{ url_for('uploaded_inspection_image', date=inspektion.date.strftime('%Y%m%d'), filename=image.filename) }}" 
+   target="_blank" 
+   class="text-decoration-none">
+    <img src="{{ url_for('uploaded_inspection_image', date=inspektion.date.strftime('%Y%m%d'), filename=image.filename) }}" 
+         alt="Inspektionsfoto"
+                                             class="card-img-top"
+                                             style="object-fit: cover; height: 200px; cursor: pointer;">
+                                    </a>
+                                    <div class="card-body p-2">
+                                        <small class="text-muted d-block">
+                                            📅 {{ image.uploaded_at.strftime('%d.%m.%Y %H:%M') }}
+                                        </small>
+                                        <small class="text-muted d-block">
+                                            📄 {{ image.filename }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <hr>
+                    {% endif %}
+
+                </div>
+
+                <!-- Footer mit Action-Buttons -->
+                <div class="card-footer bg-light d-flex gap-2 justify-content-between">
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('inspektion_bearbeiten', id=inspektion.id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            ✏️ Bearbeiten
+                        </a>
+                        <form method="POST" 
+                              action="{{ url_for('inspektion_loeschen', id=inspektion.id) }}" 
+                              class="d-inline" 
+                              onsubmit="return confirm('Inspektion wirklich löschen? Alle Bilder werden entfernt.');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                🗑️ Löschen
+                            </button>
+                        </form>
+                    </div>
+                    <a href="{{ url_for('volk_detail', volk_id=inspektion.colony_id) }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        ← Zurück zu {{ inspektion.colony.name }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

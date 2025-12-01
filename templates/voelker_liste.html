@@ -1,0 +1,65 @@
+<!-- templates/voelker_liste.html -->
+{% extends "base.html" %}
+{% block title %}Völker · Bienen-App{% endblock %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Alle Bienenvölker</h1>
+  <a href="{{ url_for('neue_inspektion') }}" class="btn btn-primary">Neue Inspektion</a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Standort</th>
+        <th>Königin geboren</th>
+        <th>Status</th>
+        <th>Notizen</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for volk in voelker %}
+      <tr>
+        <td>{{ volk.id }}</td>
+        <td>
+          <a href="{{ url_for('volk_detail', volk_id=volk.id) }}">
+            🐝
+            {{ volk.name }}
+            {% if volk.queen_color %}
+              <span class="queen-marker color-{{ volk.queen_color }}" title="Königinnenfarbe: {{ queen_colors[volk.queen_color] }}">
+                {%- if volk.queen_number -%}{{ volk.queen_number }}{%- endif -%}
+              </span>
+            {% endif %}
+          </a>
+        </td>
+        <td>{{ volk.location }}</td>
+        <td>{{ volk.queen_birth }}</td>
+        <td>{{ volk.status }}</td>
+        <td class="text-truncate" style="max-width: 250px;">{{ volk.notes }}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('volk_bearbeiten', volk_id=volk.id) }}">Bearbeiten</a>
+          <form class="d-inline" method="POST" action="{{ url_for('volk_loeschen', volk_id=volk.id) }}" onsubmit="return confirm('Wirklich löschen?')">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Neue Inspektion · Bienen-App{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="h3 mb-4">📝 Neue Inspektion anlegen</h1>
+            <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    <label for="colony_id" class="form-label">Volk</label>
+                    <select name="colony_id" id="colony_id" class="form-select" required>
+                        <option disabled value>-- Volk auswählen --</option>
+                        {% for volk in voelker %}
+                        <option value="{{ volk.id }}" {% if form.colony_id.data == volk.id %}selected{% endif %}>{{ volk.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+  <div class="form-floating mb-3">
+    {{ form.date(class="form-control", id="date", placeholder="Datum") }}
+    <label for="date">Datum</label>
+  </div>
+
+  <!-- Volksstärke Rating -->
+  <div class="form-group mb-3">
+    <label>Volksstärke</label>
+    <div class="rating editable">
+      {% for i in range(5, 0, -1) %}
+        <input type="radio" name="volksstaerke" value="{{ i }}" id="volksstaerke-{{ i }}" {% if form.volksstaerke.data == i %}checked{% endif %}>
+        <label for="volksstaerke-{{ i }}"></label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Sanftmut Rating -->
+  <div class="form-group mb-3">
+    <label>Sanftmut</label>
+    <div class="rating editable">
+      {% for i in range(5, 0, -1) %}
+        <input type="radio" name="sanftmut" value="{{ i }}" id="sanftmut-{{ i }}" {% if form.sanftmut.data == i %}checked{% endif %}>
+        <label for="sanftmut-{{ i }}"></label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Vitalität Rating -->
+  <div class="form-group mb-3">
+    <label>Vitalität</label>
+    <div class="rating editable">
+      {% for i in range(5, 0, -1) %}
+        <input type="radio" name="vitalitaet" value="{{ i }}" id="vitalitaet-{{ i }}" {% if form.vitalitaet.data == i %}checked{% endif %}>
+        <label for="vitalitaet-{{ i }}"></label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Brut Rating -->
+  <div class="form-group mb-3">
+    <label>Brut</label>
+    <div class="rating editable">
+      {% for i in range(5, 0, -1) %}
+        <input type="radio" name="brut" value="{{ i }}" id="brut-{{ i }}" {% if form.brut.data == i %}checked{% endif %}>
+        <label for="brut-{{ i }}"></label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="form-check mb-3">
+    {{ form.queen_seen(class="form-check-input", id="queen_seen") }}
+    <label class="form-check-label" for="queen_seen">
+      Königin gesichtet?
+    </label>
+  </div>
+
+  <div class="form-check mb-3">
+    {{ form.drohnenbrut_geschnitten(class="form-check-input", id="drohnenbrut_geschnitten") }}
+    <label class="form-check-label" for="drohnenbrut_geschnitten">
+      Drohnenbrut geschnitten?
+    </label>
+  </div>
+
+  <div class="form-floating mb-3">
+    {{ form.notes(class="form-control", placeholder="Beobachtungen") }}
+    <label for="notes">Beobachtungen</label>
+  </div>
+
+  <!-- Inspektionsbilder hochladen -->
+  <div class="mb-3">
+    <label for="images" class="form-label">📸 Inspektionsbilder (optional)</label>
+    <input type="file" name="images" id="images" class="form-control" multiple accept="image/*" 
+           title="JPG, PNG, GIF, WebP bis 5 MB pro Bild">
+    <small class="form-text text-muted d-block mt-1">
+      Sie können mehrere Bilder gleichzeitig hochladen (JPG, PNG, GIF, WebP). Max. 5 MB pro Bild.
+    </small>
+  </div>
+
+  <!-- Button zum Einblenden der Zusatzfelder -->
+  <button type="button" class="btn btn-link btn-sm mb-3" id="toggle-extra-fields" onclick="toggleExtraFields()">
+    Weitere Felder anzeigen
+  </button>
+
+  <div id="extra-fields" style="display:none;">
+    <div class="form-floating mb-3">
+      {{ form.varroa_check(class="form-control", placeholder="Varroa-Kontrolle (optional)") }}
+      <label for="varroa_check">Varroa-Kontrolle (optional)</label>
+    </div>
+    <div class="form-floating mb-3">
+      {{ form.honey_yield(class="form-control", placeholder="Honigertrag (kg)") }}
+      <label for="honey_yield">Honigertrag (kg)</label>
+    </div>
+    <div class="form-floating mb-3">
+      <input type="number" name="mittelwaende" class="form-control" id="mittelwaende" placeholder="Mittelwände">
+      <label for="mittelwaende">Mittelwände (Anzahl)</label>
+    </div>
+    <div class="form-floating mb-3">
+      <input type="number" name="brutwaben" class="form-control" id="brutwaben" placeholder="Brutwaben">
+      <label for="brutwaben">Brutwaben (Anzahl)</label>
+    </div>
+    <div class="form-floating mb-3">
+      <input type="number" name="futterwaben" class="form-control" id="futterwaben" placeholder="Futterwaben">
+      <label for="futterwaben">Futterwaben (Anzahl)</label>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-primary btn-sm">➕ Inspektion speichern</button>
+    <a href="{{ url_for('home') }}" class="btn btn-outline-secondary btn-sm">Zurück</a>
+  </div>
+</form>
+
+{% block scripts %}
+{{ super() }}
+<script>
+function toggleExtraFields() {
+  var extra = document.getElementById('extra-fields');
+  var btn = document.getElementById('toggle-extra-fields');
+  if (extra.style.display === 'none') {
+    extra.style.display = 'block';
+    btn.textContent = 'Weitere Felder ausblenden';
+  } else {
+    extra.style.display = 'none';
+    btn.textContent = 'Weitere Felder anzeigen';
+  }
+}
+</script>
+{% endblock %}
+{% endblock %}

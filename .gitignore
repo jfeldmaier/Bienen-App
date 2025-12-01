@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+bin/
+include/
+lib/
+lib64
+pyvenv.cfg
+share/
+
+# Flask
+instance/
+.webassets-cache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.code-workspace
+
+# Uploads (keep structure, ignore content)
+var/uploads/inspections/*/
+var/app-instance/*.db
+
+# Logs
+*.log
+
+# OS
+.Trash-1000/
+Thumbs.db
+
+# Development
+.pytest_cache/
+.coverage
+htmlcov/

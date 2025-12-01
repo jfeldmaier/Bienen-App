@@ -1,0 +1,233 @@
+/* static/styles.css */
+.card-title a { color: inherit; }
+.card-title a:hover { text-decoration: underline; }
+
+/* Styling für die Sternbewertung - editierbar (im Formular) */
+.rating.editable {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    gap: 4px;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.rating.editable input {
+    display: none;
+}
+
+.rating.editable label {
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23ddd" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 24px;
+    padding: 0;
+    margin: 0;
+}
+
+.rating.editable input:checked ~ label,
+.rating.editable label:hover,
+.rating.editable label:hover ~ label {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23ffd700" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>');
+}
+
+/* Styling für die Königinnenfarben-Auswahl */
+.queen-color-selector {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.color-option {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.selected {
+    border-color: #333;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* Königinnenfarben für Marker und Auswahloptionen */
+.color-white { background-color: #ffffff; }
+.color-yellow { background-color: #ffeb3b; }
+.color-red { background-color: #f44336; }
+.color-green { background-color: #4caf50; }
+.color-blue { background-color: #2196f3; }
+
+/* Spezielles Styling für Königinnenmarker in der Detailansicht */
+.card-header .queen-marker {
+    margin-left: 12px;
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Bessere Lesbarkeit der Nummer auf hellem Hintergrund */
+.card-header .queen-marker.color-white,
+.card-header .queen-marker.color-yellow {
+    color: rgba(0, 0, 0, 0.8);
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Styling für die Inspektionsliste */
+.rating {
+    display: flex;
+    gap: 2px;
+}
+
+.rating .star {
+    color: #ddd;
+    font-size: 1rem;
+}
+
+.rating .star.filled {
+    color: #ffc107;
+}
+
+/* Styling für die kompakte Inspektionsliste */
+.inspection-item {
+    padding: 0.75rem;
+    border-left: none;
+    border-right: none;
+    transition: background-color 0.2s;
+}
+
+.inspection-item:hover {
+    background-color: #f8f9fa;
+}
+
+.inspection-item .flex-grow-1:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    border-radius: 4px;
+}
+
+/* Kompaktes Layout für Inspektionsliste */
+.list-group-item-action {
+    transition: background-color 0.15s ease-in-out;
+}
+
+.list-group-item-action:hover {
+    background-color: #f8f9fa;
+}
+
+.inspection-thumbnail {
+    flex-shrink: 0;
+}
+
+.inspection-thumbnail img,
+.inspection-thumbnail .img-thumbnail {
+    border-radius: 4px;
+}
+
+/* Kompakte Badges */
+.badge {
+    font-weight: 500;
+}
+
+/* Sterne in der Liste */
+.rating .star {
+    display: inline-block;
+    line-height: 1;
+}
+
+.inspection-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.inspection-details {
+    margin-left: 0.2rem;
+}
+
+.rating {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.rating .star {
+    color: #ddd;
+    font-size: 0.85rem;
+}
+
+.rating .star.filled {
+    color: #ffc107;
+}
+
+.badge-sm {
+    display: inline-block;
+    padding: 0.25em 0.5em;
+    font-size: 0.75em;
+    font-weight: normal;
+    border-radius: 0.25rem;
+    color: #fff;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 576px) {
+    .inspection-item {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .queen-marker {
+        width: 16px;
+        height: 16px;
+        font-size: 0.7em;
+        margin-left: 4px;
+    }
+    
+    .rating .star {
+        font-size: 0.8rem;
+    }
+    
+    .badge-sm {
+        font-size: 0.7em;
+        padding: 0.2em 0.4em;
+    }
+}
+
+/* Styling für die Königinnenmarkierung in der Übersicht */
+.queen-marker {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #999;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75em;
+    color: rgba(0, 0, 0, 0.7);
+    font-weight: bold;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* Styling für das Bienensymbol */
+td a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+td a:hover {
+    text-decoration: underline;
+}
+
+/* Spezielles Styling für weiße Markierung, damit die Nummer besser lesbar ist */
+.queen-marker.color-white {
+    background-color: #ffffff;
+    color: #333;
+    border-color: #666;
+}
