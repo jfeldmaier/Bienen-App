@@ -30,7 +30,6 @@ from datetime import datetime, date
 from flask import Flask, render_template, redirect, url_for, flash, request, send_from_directory
 from models import db, BeeColony, Inspection, InspectionImage
 from forms import BeeColonyForm, InspectionForm, BatchInspectionForm
-from flask_migrate import Migrate
 from upload_utils import save_inspection_images, delete_inspection_images
 import os
 
@@ -53,7 +52,6 @@ app.config['SECRET_KEY'] = 'biene'
 BASE_UPLOAD_FOLDER = os.path.join(os.getcwd(), 'var', 'uploads')
 app.config['UPLOAD_FOLDER'] = BASE_UPLOAD_FOLDER
 
-migrate = Migrate(app, db)
 db.init_app(app)
 
 # Globale Variablen für Templates
@@ -61,6 +59,7 @@ db.init_app(app)
 def utility_processor():
     return {'queen_colors': QUEEN_COLORS}
 
+# Datenbank automatisch erstellen, falls nicht vorhanden
 with app.app_context():
     db.create_all()
 

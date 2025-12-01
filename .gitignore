@@ -21,6 +21,7 @@ instance/
 *.db
 *.sqlite
 *.sqlite3
+var/app-instance/
 
 # Environment variables
 .env
@@ -43,7 +44,6 @@ venv.bak/
 
 # Uploads (keep structure, ignore content)
 var/uploads/inspections/*/
-var/app-instance/*.db
 
 # Logs
 *.log
