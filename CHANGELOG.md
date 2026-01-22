@@ -35,7 +35,7 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 - **Separate Datenbanken**: Jeder User erhält eigene `bienen_{username}.db`
 - **User-Datenbank**: Zentrale `users.db` für Authentifizierung
 - **Dynamisches Laden**: Korrekte DB wird beim Login automatisch geladen
-- **Admin-User**: Initiales Setup mit User "<USERNAME>" (Passwort: <PASSWORD_REMOVED>)
+- **Admin-User**: Initiales Setup mit Admin-User via setup_user.py
 
 ### 👥 Benutzerverwaltung
 
@@ -75,7 +75,7 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 ### 📋 Setup-Anleitung
 1. Neue Pakete installieren: `pip install -r requirements.txt`
 2. App starten: `python app.py` (Datenbanken werden automatisch in var/app-instance erstellt)
-3. Login mit: <USERNAME> / <PASSWORD_REMOVED>
+3. Setup-Script ausführen: `python setup_user.py` (erstellt Admin-User mit Passwort)
 4. **Passwort nach dem Login ändern!**
 
 **Hinweis**: Die Datenbank-Dateien befinden sich automatisch in `var/app-instance/` (nicht im Projekt-Root).
