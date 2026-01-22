@@ -26,12 +26,18 @@
 # /volk/<id>         Detailansicht eines Volkes
 #
 
-from datetime import datetime, date
-from flask import Flask, render_template, redirect, url_for, flash, request, send_from_directory
+from datetime import datetime, date, timedelta
+from flask import Flask, render_template, redirect, url_for, flash, request, send_from_directory, session, g, abort
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from functools import wraps
 from models import db, BeeColony, Inspection, InspectionImage
-from forms import BeeColonyForm, InspectionForm, BatchInspectionForm
+from user_models import User
+from forms import BeeColonyForm, InspectionForm, BatchInspectionForm, LoginForm, UserCreateForm
 from upload_utils import save_inspection_images, delete_inspection_images
 import os
+import secrets
 
 # Wörterbuch für Königinnenfarben
 QUEEN_COLORS = {
@@ -44,34 +50,279 @@ QUEEN_COLORS = {
 
 # Flask-App und Datenbank initialisieren
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bienen.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'biene'
 
+# Sicherer SECRET_KEY für Produktion (generiert falls nicht vorhanden)
+SECRET_KEY_FILE = 'secret_key.txt'
+if os.path.exists(SECRET_KEY_FILE):
+    with open(SECRET_KEY_FILE, 'r') as f:
+        app.config['SECRET_KEY'] = f.read().strip()
+else:
+    # Generiere neuen sicheren Key
+    new_key = secrets.token_hex(32)
+    with open(SECRET_KEY_FILE, 'w') as f:
+        f.write(new_key)
+    app.config['SECRET_KEY'] = new_key
+
+# Session-Konfiguration für Sicherheit und 10 Tage Gültigkeit
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=10)
+# In Produktion mit HTTPS: app.config['SESSION_COOKIE_SECURE'] = True
+
+# Datenbank-Konfiguration (absolute Pfade im Instance-Ordner)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+BASE_INSTANCE_DIR = os.path.abspath(os.path.join(app.root_path, 'var', 'app-instance'))
+os.makedirs(BASE_INSTANCE_DIR, exist_ok=True)
+DEFAULT_DB_PATH = os.path.join(BASE_INSTANCE_DIR, 'bienen_jos.db')
+USERS_DB_PATH = os.path.join(BASE_INSTANCE_DIR, 'users.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DEFAULT_DB_PATH}'  # Default, wird dynamisch gesetzt
+app.config['SQLALCHEMY_BINDS'] = {'users': f'sqlite:///{USERS_DB_PATH}'}  # Separate User-DB
 
 BASE_UPLOAD_FOLDER = os.path.join(os.getcwd(), 'var', 'uploads')
 app.config['UPLOAD_FOLDER'] = BASE_UPLOAD_FOLDER
 
+# Datenbank initialisieren
 db.init_app(app)
+
+# Flask-Login Setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Bitte melden Sie sich an, um auf diese Seite zuzugreifen.'
+login_manager.login_message_category = 'warning'
+
+# Rate Limiter Setup (3 Fehlversuche pro 30 Minuten)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+@login_manager.user_loader
+def load_user(user_id):
+    """User-Loader für Flask-Login"""
+    return db.session.get(User, int(user_id))
+
+# Hilfsfunktion: DB-URI für User ermitteln
+def get_user_db_uri(username):
+    """Gibt den absoluten Datenbank-Pfad für einen User zurück (im Instance-Ordner).
+    Für 'jos' wird eine vorhandene bienen.db bevorzugt verwendet.
+    """
+    if username == 'jos':
+        jos_legacy = os.path.join(BASE_INSTANCE_DIR, 'bienen.db')
+        if os.path.exists(jos_legacy):
+            return f'sqlite:///{jos_legacy}'
+    filename = f'bienen_{username}.db'
+    return f'sqlite:///{os.path.join(BASE_INSTANCE_DIR, filename)}'
+
+
+# Admin-Decorator
+def admin_required(f):
+    """Decorator: Route nur für Admins zugänglich"""
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_admin:
+            flash('⛔ Sie benötigen Administrator-Rechte für diese Aktion.', 'danger')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# Dynamische Datenbank-Bindung vor jedem Request
+@app.before_request
+def before_request():
+    """Lädt die richtige User-Datenbank vor jedem Request"""
+    if current_user.is_authenticated:
+        # Setze DB-URI basierend auf eingeloggtem User
+        db_uri = get_user_db_uri(current_user.username)
+        if app.config.get('SQLALCHEMY_DATABASE_URI') != db_uri:
+            app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+            db.session.remove()  # Alte Session schließen
+            db.engine.dispose()  # Engine neu initialisieren
+        
+        # Session als permanent markieren (verlängert bei Aktivität)
+        session.permanent = True
+
 
 # Globale Variablen für Templates
 @app.context_processor
 def utility_processor():
     return {'queen_colors': QUEEN_COLORS}
 
-# Datenbank automatisch erstellen, falls nicht vorhanden
-with app.app_context():
-    db.create_all()
 
+# Datenbanken automatisch erstellen, falls nicht vorhanden
+with app.app_context():
+    db.create_all()  # Erstellt alle Tabellen inkl. users (via bind)
+
+
+# ========================================
+# AUTHENTIFIZIERUNG: Login/Logout
+# ========================================
+
+@app.route("/login", methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Rate Limiting für Login-Versuche
+def login():
+    """Login-Seite"""
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        # User aus User-DB laden
+        user = User.query.filter_by(username=form.username.data).first()
+        
+        if user is None:
+            flash('❌ Ungültiger Benutzername oder Passwort.', 'danger')
+            return render_template('login.html', form=form)
+        
+        # Account-Sperre prüfen
+        if user.is_locked():
+            remaining_time = (user.locked_until - datetime.utcnow()).total_seconds() / 60
+            flash(f'🔒 Ihr Account ist gesperrt. Versuchen Sie es in {int(remaining_time)} Minuten erneut.', 'danger')
+            return render_template('login.html', form=form)
+        
+        # Passwort prüfen
+        if not user.check_password(form.password.data):
+            user.increment_failed_attempts()
+            db.session.commit()
+            
+            if user.is_locked():
+                flash('🔒 Zu viele Fehlversuche. Ihr Account wurde für 30 Minuten gesperrt.', 'danger')
+            else:
+                remaining = 3 - user.failed_login_attempts
+                flash(f'❌ Ungültiger Benutzername oder Passwort. Noch {remaining} Versuch(e) übrig.', 'danger')
+            
+            return render_template('login.html', form=form)
+        
+        # Login erfolgreich
+        user.reset_failed_attempts()
+        db.session.commit()
+        
+        # remember_me = True für 10-Tage-Session
+        login_user(user, remember=form.remember_me.data or True)
+        session.permanent = True
+        
+        flash(f'✅ Willkommen zurück, {user.username}!', 'success')
+        
+        # Redirect zu ursprünglich angefragter Seite
+        next_page = request.args.get('next')
+        if next_page:
+            return redirect(next_page)
+        return redirect(url_for('home'))
+    
+    return render_template('login.html', form=form)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    """Logout"""
+    logout_user()
+    flash('👋 Sie wurden erfolgreich abgemeldet.', 'info')
+    return redirect(url_for('login'))
+
+
+# ========================================
+# ADMIN: User-Verwaltung
+# ========================================
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    """User-Verwaltungsoberfläche (nur für Admins)"""
+    users = User.query.order_by(User.created_at.desc()).all()
+    form = UserCreateForm()
+    return render_template('admin_users.html', users=users, form=form)
+
+
+@app.route("/admin/users/create", methods=['POST'])
+@admin_required
+def admin_user_create():
+    """Neuen User anlegen (nur für Admins)"""
+    form = UserCreateForm()
+    
+    if form.validate_on_submit():
+        # Prüfe ob Username bereits existiert
+        existing_user = User.query.filter_by(username=form.username.data).first()
+        if existing_user:
+            flash('❌ Ein Benutzer mit diesem Namen existiert bereits.', 'danger')
+            return redirect(url_for('admin_users'))
+        
+        # Neuen User erstellen
+        new_user = User(
+            username=form.username.data,
+            is_admin=form.is_admin.data
+        )
+        new_user.set_password(form.password.data)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        # Leere Datenbank für neuen User erstellen
+        user_db_uri = get_user_db_uri(form.username.data)
+        temp_config = app.config['SQLALCHEMY_DATABASE_URI']
+        app.config['SQLALCHEMY_DATABASE_URI'] = user_db_uri
+        
+        with app.app_context():
+            db.create_all()
+        
+        app.config['SQLALCHEMY_DATABASE_URI'] = temp_config
+        
+        flash(f'✅ Benutzer "{form.username.data}" wurde erfolgreich erstellt.', 'success')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'❌ {field}: {error}', 'danger')
+    
+    return redirect(url_for('admin_users'))
+
+
+@app.route("/admin/users/<int:user_id>/delete", methods=['POST'])
+@admin_required
+def admin_user_delete(user_id):
+    """User löschen (nur für Admins)"""
+    user = db.session.get(User, user_id) or abort(404)
+    
+    # Verhindere Selbstlöschung
+    if user.id == current_user.id:
+        flash('❌ Sie können Ihren eigenen Account nicht löschen.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    username = user.username
+    
+    # User aus DB löschen
+    db.session.delete(user)
+    db.session.commit()
+    
+    # Datenbank-Datei umbenennen mit _deleted Suffix
+    db_file = os.path.abspath(os.path.join(BASE_INSTANCE_DIR, f'bienen_{username}.db'))
+    if os.path.exists(db_file):
+        deleted_file = os.path.abspath(os.path.join(BASE_INSTANCE_DIR, f'bienen_{username}_deleted_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db'))
+        os.rename(db_file, deleted_file)
+        flash(f'✅ Benutzer "{username}" wurde gelöscht. Datenbank wurde archiviert als: {deleted_file}', 'success')
+    else:
+        flash(f'✅ Benutzer "{username}" wurde gelöscht.', 'success')
+    
+    return redirect(url_for('admin_users'))
+
+
+# ========================================
+# HAUPTANWENDUNG: Völker & Inspektionen
+# ========================================
 
 # Startseite: Übersicht aller Bienenvölker
 @app.route("/")
+@login_required
 def home():
     voelker = BeeColony.query.all()
     return render_template('index.html', voelker=voelker)
 
 
 @app.route('/neues-volk', methods=['GET', 'POST'])
+@login_required
 def neues_volk():
     form = BeeColonyForm()
     if form.validate_on_submit():
@@ -92,6 +343,7 @@ def neues_volk():
 
 # Neue Inspektion anlegen
 @app.route('/neue-inspektion', methods=['GET', 'POST'])
+@login_required
 def neue_inspektion():
     voelker = BeeColony.query.all()
     form = InspectionForm()
@@ -149,6 +401,7 @@ def neue_inspektion():
 
 # Übersicht aller Bienenvölker
 @app.route('/voelker')
+@login_required
 def voelker_liste():
     voelker = BeeColony.query.all()
     return render_template('voelker_liste.html', voelker=voelker)
@@ -156,6 +409,7 @@ def voelker_liste():
 
 # Übersicht aller Inspektionen
 @app.route('/inspektionen')
+@login_required
 def inspektionen_liste():
     # Sortiere Inspektionen chronologisch (neueste zuerst)
     inspektionen = Inspection.query.order_by(Inspection.date.desc()).all()
@@ -172,6 +426,7 @@ def inspektionen_liste():
 
 # Inspektion bearbeiten
 @app.route('/inspektion/<int:id>/bearbeiten', methods=['GET', 'POST'])
+@login_required
 def inspektion_bearbeiten(id):
     inspektion = Inspection.query.get_or_404(id)
     form = InspectionForm(obj=inspektion)
@@ -224,11 +479,13 @@ def inspektion_bearbeiten(id):
 
 # Inspektions-Detailansicht
 @app.route('/inspektion/<int:id>')
+@login_required
 def inspektion_detail(id):
     inspektion = Inspection.query.get_or_404(id)
     return render_template('inspektion_detail.html', inspektion=inspektion)
 
 @app.route('/uploads/inspections/<date>/<filename>')
+@login_required
 def uploaded_inspection_image(date, filename):
     # Korrekter Pfad: (Absoluter Pfad zu var/uploads) + /inspections/ + (datum)
     import os # os ist bereits importiert, aber zur Verdeutlichung
@@ -245,6 +502,7 @@ def uploaded_inspection_image(date, filename):
 
 # Detailansicht eines Volkes
 @app.route('/volk/<int:volk_id>')
+@login_required
 def volk_detail(volk_id):
     volk = BeeColony.query.get_or_404(volk_id)
     inspektionen = Inspection.query.filter_by(colony_id=volk.id).order_by(Inspection.date.desc()).all()
@@ -252,6 +510,7 @@ def volk_detail(volk_id):
 
 # Status eines Volkes direkt ändern
 @app.route('/volk/<int:volk_id>/status', methods=['POST'])
+@login_required
 def volk_status_aendern(volk_id):
     volk = BeeColony.query.get_or_404(volk_id)
     neuer_status = request.form.get('status')
@@ -262,6 +521,7 @@ def volk_status_aendern(volk_id):
 
 # Batch-Inspektion für mehrere Völker
 @app.route('/batch-inspektion', methods=['GET', 'POST'])
+@login_required
 def batch_inspektion():
     form = BatchInspectionForm()
     voelker = BeeColony.query.all()
@@ -305,6 +565,7 @@ def batch_inspektion():
 
 # Bienenvolk bearbeiten
 @app.route('/volk/<int:volk_id>/bearbeiten', methods=['GET', 'POST'])
+@login_required
 def volk_bearbeiten(volk_id):
     volk = BeeColony.query.get_or_404(volk_id)
     form = BeeColonyForm(obj=volk)
@@ -317,6 +578,7 @@ def volk_bearbeiten(volk_id):
 
 # Bienenvolk löschen
 @app.route('/volk/<int:volk_id>/loeschen', methods=['POST'])
+@login_required
 def volk_loeschen(volk_id):
     volk = BeeColony.query.get_or_404(volk_id)
     db.session.delete(volk)
@@ -325,6 +587,7 @@ def volk_loeschen(volk_id):
 
 # Inspektion löschen
 @app.route('/inspektion/<int:id>/loeschen', methods=['POST'])
+@login_required
 def inspektion_loeschen(id):
     inspektion = Inspection.query.get_or_404(id)
     volk_id = inspektion.colony_id
@@ -343,6 +606,7 @@ def inspektion_loeschen(id):
 
 # Batch-Löschen von Inspektionen (markierte Einträge)
 @app.route('/inspektionen/loeschen', methods=['POST'])
+@login_required
 def inspektionen_loeschen():
     ids = request.form.getlist('inspection_ids')
     if not ids:

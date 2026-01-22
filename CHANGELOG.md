@@ -4,6 +4,92 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 
 ---
 
+## [2025-12-17] - User-Verwaltung und Authentifizierung (UPDATED)
+
+### 🔐 Sicherheit & Authentifizierung
+
+#### Datenbank-Verwaltung & Pfade
+- **Zentrale Instance-Folder**: Alle Datenbank-Dateien in `var/app-instance/`
+  - `users.db` - Zentrale User-Datenbank
+  - `bienen.db` - Existierende Daten für Admin-User "<USERNAME>"
+  - `bienen_{username}.db` - Pro-User Datenbanken für neue User
+- **Absolute Pfade**: Konsistente Datenbankverbindungen unabhängig von CWD
+- **Legacy-Support**: Bestehende `bienen.db` wird für jos automatisch verwendet
+
+#### Vollständiges Login-System implementiert
+- **Login-Pflicht**: Zugriff auf die Anwendung nur nach erfolgreicher Anmeldung
+- **Sichere Passwort-Speicherung**: pbkdf2:sha256 Hashing mit Werkzeug
+- **Session-Management**: 10-Tage-Sessions mit automatischer Verlängerung bei Aktivität
+- **Rate-Limiting**: Schutz vor Brute-Force-Angriffen (10 Versuche/Minute)
+- **Account-Sperre**: Nach 3 Fehlversuchen 30 Minuten gesperrt
+- **Sicherer SECRET_KEY**: Automatisch generiert und persistent gespeichert
+
+#### Passwort-Anforderungen
+- Mindestens 10 Zeichen
+- Mindestens ein Großbuchstabe
+- Mindestens ein Kleinbuchstabe
+- Mindestens eine Zahl
+- Mindestens ein Sonderzeichen
+
+#### Multi-User-Unterstützung
+- **Separate Datenbanken**: Jeder User erhält eigene `bienen_{username}.db`
+- **User-Datenbank**: Zentrale `users.db` für Authentifizierung
+- **Dynamisches Laden**: Korrekte DB wird beim Login automatisch geladen
+- **Admin-User**: Initiales Setup mit User "<USERNAME>" (Passwort: <PASSWORD_REMOVED>)
+
+### 👥 Benutzerverwaltung
+
+#### Admin-Funktionen
+- **User anlegen**: Neue Benutzer mit optionalen Admin-Rechten erstellen
+- **User löschen**: Benutzer entfernen (DB wird archiviert mit _deleted Suffix)
+- **User-Übersicht**: Liste aller Benutzer mit Status und Fehlversuchen
+- **Admin-Berechtigung**: Mehrere Admins möglich
+- **Admin-Interface**: Route `/admin/users` nur für Administratoren
+
+#### UI-Anpassungen
+- **Login-Seite**: Bootstrap 5 Design mit Gradient-Hintergrund
+- **Navbar erweitert**: 
+  - Anzeige des eingeloggten Users
+  - Logout-Button
+  - Admin-Link (nur für Admins sichtbar)
+- **User-Verwaltung**: Übersichtliche Tabelle mit Aktions-Buttons
+
+### 📦 Neue Abhängigkeiten
+- `Flask-Login==0.6.3` - Session-Management
+- `Flask-Limiter==3.5.0` - Rate-Limiting
+
+### 🗂️ Neue Dateien
+- `user_models.py` - User-Datenbankmodell
+- `setup_user.py` - Initialisierungs-Script für Admin-User
+- `templates/login.html` - Login-Formular
+- `templates/admin_users.html` - User-Verwaltungsoberfläche
+- `secret_key.txt` - Automatisch generierter SECRET_KEY (nicht im Git)
+- `users.db` - User-Datenbank (nicht im Git)
+
+### 🔄 Geänderte Dateien
+- `app.py` - Login-System, User-Verwaltung, @login_required für alle Routen
+- `forms.py` - LoginForm und UserCreateForm mit Validierung
+- `templates/base.html` - Navbar mit User-Info und Logout
+- `requirements.txt` - Flask-Login und Flask-Limiter hinzugefügt
+
+### 📋 Setup-Anleitung
+1. Neue Pakete installieren: `pip install -r requirements.txt`
+2. App starten: `python app.py` (Datenbanken werden automatisch in var/app-instance erstellt)
+3. Login mit: <USERNAME> / <PASSWORD_REMOVED>
+4. **Passwort nach dem Login ändern!**
+
+**Hinweis**: Die Datenbank-Dateien befinden sich automatisch in `var/app-instance/` (nicht im Projekt-Root).
+
+### ⚠️ Breaking Changes
+- **Migration erforderlich**: Bestehende `bienen.db` wird nach `bienen_jos.db` migriert
+- **Login notwendig**: Kein Zugriff mehr ohne Authentifizierung
+- **Produktions-Hinweise**: 
+  - HTTPS verwenden (SESSION_COOKIE_SECURE aktivieren)
+  - WSGI-Server statt Flask dev server
+  - Reverse Proxy (nginx/Apache) empfohlen
+
+---
+
 ## [2025-11-29] - UI-Verbesserungen Inspektionen-Übersicht & Mobile Navigation
 
 ### 🎨 UI/UX Verbesserungen

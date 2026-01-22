@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Benutzerverwaltung - Bienen-App{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="bi bi-people"></i> Benutzerverwaltung
+        <span class="badge bg-secondary">Admin</span>
+    </h1>
+    
+    <!-- Neuen User anlegen -->
+    <div class="card mb-4 shadow">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-person-plus"></i> Neuen Benutzer anlegen</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin_user_create') }}">
+                {{ form.hidden_tag() }}
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control", placeholder="min. 3 Zeichen") }}
+                            {% if form.username.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.username.errors %}
+                                        <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control", placeholder="min. 10 Zeichen") }}
+                            {% if form.password.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.password.errors %}
+                                        <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">
+                                Anforderungen: Groß-/Kleinbuchstaben, Zahl, Sonderzeichen
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            {{ form.password_confirm.label(class="form-label") }}
+                            {{ form.password_confirm(class="form-control") }}
+                            {% if form.password_confirm.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.password_confirm.errors %}
+                                        <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="form-check">
+                                {{ form.is_admin(class="form-check-input") }}
+                                {{ form.is_admin.label(class="form-check-label") }}
+                            </div>
+                            <button type="submit" class="btn btn-success mt-2 w-100">
+                                <i class="bi bi-plus-circle"></i> Erstellen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bestehende User -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Bestehende Benutzer</h5>
+        </div>
+        <div class="card-body">
+            {% if users %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Benutzername</th>
+                                <th>Rolle</th>
+                                <th>Erstellt am</th>
+                                <th>Fehlversuche</th>
+                                <th>Status</th>
+                                <th class="text-end">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>
+                                    <strong>{{ user.username }}</strong>
+                                    {% if user.id == current_user.id %}
+                                        <span class="badge bg-info">Sie</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-danger">Administrator</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Benutzer</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                                <td>
+                                    {% if user.failed_login_attempts > 0 %}
+                                        <span class="badge bg-warning text-dark">
+                                            {{ user.failed_login_attempts }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.is_locked() %}
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-lock"></i> Gesperrt
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-unlock"></i> Aktiv
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if user.id != current_user.id %}
+                                        <form method="POST" action="{{ url_for('admin_user_delete', user_id=user.id) }}" 
+                                              style="display: inline;"
+                                              onsubmit="return confirm('Möchten Sie den Benutzer \'{{ user.username }}\' wirklich löschen?');">
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="bi bi-trash"></i> Löschen
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            <i class="bi bi-shield-check"></i> Eigener Account
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Keine Benutzer vorhanden.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Sicherheitshinweise -->
+    <div class="card mt-4 border-warning">
+        <div class="card-header bg-warning">
+            <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Sicherheitshinweise</h6>
+        </div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li>Nach 3 Fehlversuchen wird ein Account für 30 Minuten gesperrt</li>
+                <li>Passwörter müssen mindestens 10 Zeichen lang sein</li>
+                <li>Passwörter müssen Groß-/Kleinbuchstaben, Zahlen und Sonderzeichen enthalten</li>
+                <li>Gelöschte Benutzer-Datenbanken werden mit Zeitstempel archiviert</li>
+                <li>Sessions sind 10 Tage gültig und werden bei Aktivität verlängert</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

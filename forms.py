@@ -32,9 +32,11 @@ from wtforms.fields import (
     SelectField,
     SelectMultipleField, 
     SubmitField, 
-    IntegerField
+    IntegerField,
+    PasswordField
 )
-from wtforms.validators import DataRequired, Optional
+from wtforms.validators import DataRequired, Optional, EqualTo, ValidationError, Length
+import re
 
 # Formular für ein Bienenvolk
 class BeeColonyForm(FlaskForm):
@@ -87,3 +89,51 @@ class BatchInspectionForm(FlaskForm):
         notes = TextAreaField('Beobachtungen', validators=[Optional()])
         varroa_check = StringField('Varroa-Kontrolle', validators=[Optional()])
         submit = SubmitField('Speichern')
+
+
+# Formular für Login
+class LoginForm(FlaskForm):
+    username = StringField('Benutzername', validators=[DataRequired()])
+    password = PasswordField('Passwort', validators=[DataRequired()])
+    remember_me = BooleanField('Angemeldet bleiben')
+    submit = SubmitField('Anmelden')
+
+
+# Formular für User-Erstellung
+class UserCreateForm(FlaskForm):
+    username = StringField('Benutzername', validators=[
+        DataRequired(), 
+        Length(min=3, max=50, message='Benutzername muss zwischen 3 und 50 Zeichen lang sein')
+    ])
+    password = PasswordField('Passwort', validators=[
+        DataRequired(),
+        Length(min=10, message='Passwort muss mindestens 10 Zeichen lang sein')
+    ])
+    password_confirm = PasswordField('Passwort wiederholen', validators=[
+        DataRequired(),
+        EqualTo('password', message='Passwörter müssen übereinstimmen')
+    ])
+    is_admin = BooleanField('Administrator-Rechte')
+    submit = SubmitField('Benutzer erstellen')
+    
+    def validate_password(self, field):
+        """
+        Passwort-Validierung nach den Anforderungen:
+        - Mindestens ein Großbuchstabe
+        - Mindestens ein Kleinbuchstabe  
+        - Mindestens eine Zahl
+        - Mindestens ein Sonderzeichen
+        """
+        password = field.data
+        
+        if not re.search(r'[A-Z]', password):
+            raise ValidationError('Passwort muss mindestens einen Großbuchstaben enthalten')
+        
+        if not re.search(r'[a-z]', password):
+            raise ValidationError('Passwort muss mindestens einen Kleinbuchstaben enthalten')
+        
+        if not re.search(r'[0-9]', password):
+            raise ValidationError('Passwort muss mindestens eine Zahl enthalten')
+        
+        if not re.search(r'[^A-Za-z0-9]', password):
+            raise ValidationError('Passwort muss mindestens ein Sonderzeichen enthalten')
