@@ -3,7 +3,7 @@
 init_admin.py
 -----------------------------
 Initialisierungs-Script für die User-Verwaltung
-Erstellt den Admin-User "<USERNAME>" und migriert die Datenbank
+Erstellt einen Admin-User und migriert die Datenbank
 
 Verwendung:
     python init_admin.py
@@ -11,12 +11,33 @@ Verwendung:
 
 import os
 import sys
-# Wichtig: app.py importieren um die korrekt konfigurierten DB-Instanzen zu verwenden
-import sys
-import os
+
+def load_default_credentials():
+    """Liest Standard-Anmeldedaten aus default_user.txt"""
+    if not os.path.exists('default_user.txt'):
+        print("❌ Fehler: default_user.txt nicht gefunden!")
+        print("Bitte erstellen Sie die Datei basierend auf default_user.example.txt")
+        sys.exit(1)
+    
+    credentials = {}
+    with open('default_user.txt', 'r') as f:
+        for line in f:
+            line = line.strip()
+            if '=' in line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                credentials[key.strip()] = value.strip()
+    
+    if 'USERNAME' not in credentials or 'PASSWORD' not in credentials:
+        print("❌ Fehler: USERNAME oder PASSWORD nicht in default_user.txt gefunden!")
+        sys.exit(1)
+    
+    return credentials['USERNAME'], credentials['PASSWORD']
 
 def init_admin_user():
     """Erstellt Admin-User und initialisiert Datenbanken"""
+    
+    # Lade Anmeldedaten aus Konfigurationsdatei
+    admin_username, admin_password = load_default_credentials()
     
     print("=" * 60)
     print("BeeHiveTracker - User-Verwaltung Initialisierung")
@@ -31,9 +52,12 @@ def init_admin_user():
     from datetime import datetime
     import shutil
     
+    # Bestimme DB-URI basierend auf Admin-Username
+    db_uri = f'sqlite:///bienen_{admin_username}.db'
+    
     # Erstelle minimale App-Konfiguration
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bienen_jos.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_BINDS'] = {'users': 'sqlite:///users.db'}
     app.config['SECRET_KEY'] = 'init-temp-key'
@@ -68,50 +92,50 @@ def init_admin_user():
         print("✅ User-Datenbank erstellt")
         
         # 2. Prüfe ob Admin-User bereits existiert
-        existing_user = UserInit.query.filter_by(username='<USERNAME>').first()
+        existing_user = UserInit.query.filter_by(username=admin_username).first()
         if existing_user:
-            print("\n⚠️  User '<USERNAME>' existiert bereits!")
+            print(f"\n⚠️  User '{admin_username}' existiert bereits!")
             response = input("Möchten Sie das Passwort zurücksetzen? (j/n): ")
             if response.lower() == 'j':
-                existing_user.set_password('<PASSWORD_REMOVED>')
+                existing_user.set_password(admin_password)
                 existing_user.is_admin = True
                 user_db.session.commit()
-                print("✅ Passwort für '<USERNAME>' wurde zurückgesetzt auf: <PASSWORD_REMOVED>")
+                print("✅ Admin-User aktualisiert")
             else:
                 print("ℹ️  Keine Änderungen vorgenommen")
             return
         
         # 3. Admin-User erstellen
-        print("\n👤 Erstelle Admin-User '<USERNAME>'...")
-        admin_user = UserInit(username='<USERNAME>', is_admin=True)
-        admin_user.set_password('<PASSWORD_REMOVED>')
+        print(f"\n👤 Erstelle Admin-User '{admin_username}'...")
+        admin_user = UserInit(username=admin_username, is_admin=True)
+        admin_user.set_password(admin_password)
         user_db.session.add(admin_user)
         user_db.session.commit()
-        print("✅ Admin-User '<USERNAME>' erstellt")
-        print("   Benutzername: jos")
-        print("   Passwort: <PASSWORD_REMOVED>")
-        print("   Admin-Rechte: Ja")
+        print("✅ Admin-User erstellt")
+        
+        # Bestimme DB-Dateiname
+        db_filename = f'bienen_{admin_username}.db'
         
         print("\n📊 Datenbank-Migration...")
         if os.path.exists('bienen.db'):
-            if os.path.exists('bienen_jos.db'):
-                print("⚠️  bienen_jos.db existiert bereits!")
+            if os.path.exists(db_filename):
+                print(f"⚠️  {db_filename} existiert bereits!")
                 response = input("Möchten Sie die bestehende bienen.db überschreiben? (j/n): ")
                 if response.lower() != 'j':
                     print("ℹ️  Migration übersprungen")
                 else:
                     from datetime import datetime
                     import shutil
-                    backup_name = f"bienen_jos_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
-                    shutil.copy('bienen_jos.db', backup_name)
+                    backup_name = f"bienen_{admin_username}_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+                    shutil.copy(db_filename, backup_name)
                     print(f"✅ Backup erstellt: {backup_name}")
-                    shutil.copy('bienen.db', 'bienen_jos.db')
-                    print("✅ Datenbank migriert: bienen.db → bienen_jos.db (überschrieben)")
+                    shutil.copy('bienen.db', db_filename)
+                    print(f"✅ Datenbank migriert: bienen.db → {db_filename} (überschrieben)")
             else:
-                # Kopiere bienen.db nach bienen_jos.db
+                # Kopiere bienen.db nach bienen_{username}.db
                 import shutil
-                shutil.copy('bienen.db', 'bienen_jos.db')
-                print("✅ Datenbank migriert: bienen.db → bienen_jos.db")
+                shutil.copy('bienen.db', db_filename)
+                print(f"✅ Datenbank migriert: bienen.db → {db_filename}")
             
             os.rename('bienen.db', 'bienen_old.db')
             print("ℹ️  Alte Datenbank umbenannt: bienen.db → bienen_old.db")
@@ -125,9 +149,7 @@ def init_admin_user():
     print("\n📋 Nächste Schritte:")
     print("   1. Starte die Anwendung: python app.py")
     print("   2. Öffne im Browser: http://localhost:5000/login")
-    print("   3. Melde dich an mit:")
-    print("      Benutzername: jos")
-    print("      Passwort: <PASSWORD_REMOVED>")
+    print("   3. Melde dich mit den Anmeldedaten aus default_user.txt an")
     print("\n⚠️  WICHTIG: Ändere das Passwort nach dem ersten Login!")
     print("=" * 60)
 

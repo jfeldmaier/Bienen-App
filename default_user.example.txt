@@ -1,0 +1,6 @@
+# Default Admin User Configuration
+# Copy this file to 'default_user.txt' and fill in your credentials
+# IMPORTANT: Never commit default_user.txt to version control!
+
+USERNAME=your_admin_username
+PASSWORD=your_secure_password_here

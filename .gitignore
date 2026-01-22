@@ -59,3 +59,4 @@ htmlcov/
 secret_key.txt
 var/app-instance/users.db
 var/app-instance/bienen_*.db
+default_user.txt
