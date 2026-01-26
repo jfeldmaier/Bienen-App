@@ -40,7 +40,6 @@ venv.bak/
 *~
 .DS_Store
 *.code-workspace
-.github/copilot-instructions.md
 
 # Uploads (keep structure, ignore content)
 var/uploads/inspections/*/
