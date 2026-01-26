@@ -47,6 +47,34 @@ var/uploads/inspections/*/
 
 # Logs
 *.log
+logs/
+var/logs/
+
+# Production Files (systemd, service management)
+beehivetracker.service
+secret_key.txt
+default_user.txt
+default_user.example.txt
+
+# Credentials & Sensitive Data
+.env
+.env.local
+.env.production
+
+# Production Deployment
+migrations/
+var/
+uploads/
+*.pid
+
+# Database backups
+*.db.old
+*.db.bak
+
+# Cloud/Tunnel Configuration
+.cloudflared/
+cloudflared.log
+/var/log/beehivetracker/
 
 # OS
 .Trash-1000/

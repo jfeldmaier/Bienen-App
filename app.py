@@ -31,6 +31,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, sen
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from functools import wraps
 from models import db, BeeColony, Inspection, InspectionImage
 from user_models import User
@@ -38,6 +39,12 @@ from forms import BeeColonyForm, InspectionForm, BatchInspectionForm, LoginForm,
 from upload_utils import save_inspection_images, delete_inspection_images
 import os
 import secrets
+import logging
+from logging.handlers import RotatingFileHandler
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Wörterbuch für Königinnenfarben
 QUEEN_COLORS = {
@@ -50,6 +57,10 @@ QUEEN_COLORS = {
 
 # Flask-App und Datenbank initialisieren
 app = Flask(__name__)
+
+# Environment-basierte Konfiguration
+FLASK_ENV = os.getenv('FLASK_ENV', 'development')
+DEBUG_MODE = os.getenv('DEBUG', 'False').lower() == 'true'
 
 # Sicherer SECRET_KEY für Produktion (generiert falls nicht vorhanden)
 SECRET_KEY_FILE = 'secret_key.txt'
@@ -67,22 +78,67 @@ else:
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=10)
-# In Produktion mit HTTPS: app.config['SESSION_COOKIE_SECURE'] = True
+# In Production mit HTTPS: SESSION_COOKIE_SECURE aktivieren
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 
 # Datenbank-Konfiguration (absolute Pfade im Instance-Ordner)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-BASE_INSTANCE_DIR = os.path.abspath(os.path.join(app.root_path, 'var', 'app-instance'))
+BASE_INSTANCE_DIR = os.path.abspath(os.getenv('DATABASE_PATH', os.path.join(app.root_path, 'var', 'app-instance')))
 os.makedirs(BASE_INSTANCE_DIR, exist_ok=True)
 DEFAULT_DB_PATH = os.path.join(BASE_INSTANCE_DIR, 'bienen_jos.db')
 USERS_DB_PATH = os.path.join(BASE_INSTANCE_DIR, 'users.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DEFAULT_DB_PATH}'  # Default, wird dynamisch gesetzt
 app.config['SQLALCHEMY_BINDS'] = {'users': f'sqlite:///{USERS_DB_PATH}'}  # Separate User-DB
 
-BASE_UPLOAD_FOLDER = os.path.join(os.getcwd(), 'var', 'uploads')
+BASE_UPLOAD_FOLDER = os.path.abspath(os.getenv('UPLOAD_FOLDER', os.path.join(os.getcwd(), 'var', 'uploads')))
 app.config['UPLOAD_FOLDER'] = BASE_UPLOAD_FOLDER
 
 # Datenbank initialisieren
 db.init_app(app)
+
+# Production-Logging konfigurieren
+if not DEBUG_MODE:
+    # Log-Verzeichnis erstellen
+    log_dir = os.path.dirname(os.getenv('LOG_FILE', '/var/log/beehivetracker/app.log'))
+    if log_dir and not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except PermissionError:
+            # Fallback zu lokalem Verzeichnis
+            log_dir = os.path.join(app.root_path, 'logs')
+            os.makedirs(log_dir, exist_ok=True)
+    
+    log_file = os.getenv('LOG_FILE', os.path.join(log_dir, 'app.log'))
+    log_level = getattr(logging, os.getenv('LOG_LEVEL', 'INFO').upper())
+    
+    # File-Handler mit Rotation (max 10MB, 10 Backups)
+    file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=10)
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(logging.Formatter(
+        '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+    ))
+    
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(log_level)
+    app.logger.info('BeeHiveTracker gestartet im Production-Modus')
+
+# Security Headers mit Flask-Talisman (nur in Production)
+if not DEBUG_MODE:
+    Talisman(app,
+        force_https=False,  # Cloudflare handhabt HTTPS
+        strict_transport_security=True,
+        strict_transport_security_max_age=31536000,  # 1 Jahr
+        content_security_policy={
+            'default-src': "'self'",
+            'script-src': ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+            'style-src': ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+            'img-src': ["'self'", 'data:'],
+            'font-src': ["'self'", 'cdn.jsdelivr.net']
+        },
+        content_security_policy_nonce_in=['script-src'],
+        frame_options='DENY',
+        x_xss_protection=True
+    )
 
 # Flask-Login Setup
 login_manager = LoginManager()
@@ -155,6 +211,39 @@ def utility_processor():
 # Datenbanken automatisch erstellen, falls nicht vorhanden
 with app.app_context():
     db.create_all()  # Erstellt alle Tabellen inkl. users (via bind)
+
+
+# ========================================
+# HEALTH CHECK & ERROR HANDLER
+# ========================================
+
+@app.route('/health')
+def health_check():
+    """Health-Check-Endpoint für Monitoring und Load-Balancer"""
+    try:
+        # Teste Datenbankverbindung
+        db.session.execute(db.text('SELECT 1'))
+        return {'status': 'healthy', 'database': 'connected'}, 200
+    except Exception as e:
+        app.logger.error(f'Health-Check fehlgeschlagen: {e}')
+        return {'status': 'unhealthy', 'error': str(e)}, 503
+
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Custom 404 Error Handler"""
+    app.logger.warning(f'404 Error: {request.url}')
+    return render_template('base.html', 
+                         content='<div class="alert alert-warning"><h3>404 - Seite nicht gefunden</h3><p>Die angeforderte Seite existiert nicht.</p><a href="/" class="btn btn-primary">Zur Startseite</a></div>'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Custom 500 Error Handler"""
+    app.logger.error(f'500 Error: {error}')
+    db.session.rollback()  # Rollback bei DB-Fehler
+    return render_template('base.html',
+                         content='<div class="alert alert-danger"><h3>500 - Interner Serverfehler</h3><p>Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.</p><a href="/" class="btn btn-primary">Zur Startseite</a></div>'), 500
 
 
 # ========================================
@@ -636,4 +725,7 @@ def inspektionen_loeschen():
 
 # App-Start
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
+    # Nur für lokales Development - in Production wird Gunicorn verwendet
+    host = os.getenv('SERVER_HOST', '0.0.0.0')
+    port = int(os.getenv('SERVER_PORT', 5000))
+    app.run(debug=DEBUG_MODE, host=host, port=port)

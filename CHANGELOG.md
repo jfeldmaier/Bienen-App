@@ -4,6 +4,127 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 
 ---
 
+## [2026-01-26] - Production-Deployment & Security-Hardening
+
+### 🚀 Production-Ready Deployment
+
+#### WSGI-Server & Process Management
+- **Gunicorn**: Production WSGI-Server mit Multi-Worker-Support
+  - Konfigurierbare Worker-Anzahl via Environment-Variable
+  - Automatische Log-Rotation
+  - Graceful Restart bei Updates
+- **Systemd-Service**: Automatischer Start/Stop/Restart
+  - Auto-Start beim Booten
+  - Crash-Recovery mit automatischem Neustart
+  - Process-Management via `systemctl`
+
+#### Environment-basierte Konfiguration
+- **python-dotenv**: `.env`-Datei-Support für alle Konfigurationen
+- **Flexible Pfade**: Database, Uploads, Logs via Environment-Variables
+- **DEBUG-Mode-Control**: Production vs Development via `FLASK_ENV`
+- **`.env.example`**: Template-Datei für schnelles Setup
+
+#### Security Headers & Hardening
+- **Flask-Talisman**: Umfassende Security-Header-Middleware
+  - `Strict-Transport-Security` (HSTS) - 1 Jahr Max-Age
+  - `X-Frame-Options: DENY` - Clickjacking-Schutz
+  - `X-Content-Type-Options: nosniff`
+  - `X-XSS-Protection` aktiviert
+  - `Content-Security-Policy` mit CSP-Nonces für Inline-Scripts
+- **SESSION_COOKIE_SECURE**: Aktivierbar für HTTPS-Only-Sessions
+- **HTTPS-Enforcement**: Vorbereitet für Reverse-Proxy-Setup
+
+#### Production-Logging
+- **Strukturiertes Logging**: INFO/WARNING/ERROR-Levels
+- **File-Handler**: Rotating Log-Files (max 10MB, 10 Backups)
+- **Access-Logs**: Separate Gunicorn-Access-Logs
+- **Error-Logs**: Dedizierte Error-Log-Files
+- **Log-Location**: Konfigurierbar via `LOG_FILE` Environment-Variable
+
+#### Error-Handling
+- **Custom Error-Handler**: 
+  - 404: Benutzerfreundliche "Seite nicht gefunden"-Meldung
+  - 500: Interner Server-Fehler mit automatischem DB-Rollback
+- **Health-Check-Endpoint**: `/health` für Monitoring und Load-Balancer
+  - Testet Datenbankverbindung
+  - Gibt JSON-Status zurück (`healthy`/`unhealthy`)
+
+### 🌐 Cloudflare Tunnel Integration
+
+#### Zero-Trust Network Access
+- **Cloudflared-Support**: Sichere Verbindung ohne Port-Forwarding
+- **DEPLOYMENT.md**: Vollständige Schritt-für-Schritt-Anleitung
+  - Cloudflare Tunnel Installation
+  - Authentifizierung & Tunnel-Setup
+  - DNS-Routing-Konfiguration
+  - Systemd-Service für Cloudflared
+- **Zero-Trust-Access**: Optional E-Mail-basierte Authentifizierung
+- **HTTPS-Enforcement**: SSL/TLS via Cloudflare ohne lokales Zertifikat
+
+### 📁 Neue Dateien
+
+#### Konfiguration
+- `.env.example` - Environment-Variable-Template mit allen Optionen
+- `DEPLOYMENT.md` - Umfassende Deployment-Dokumentation
+
+#### Service-Management
+- `beehivetracker.service` - Systemd-Unit-File mit Gunicorn-Konfiguration
+
+### 🔧 Geänderte Dateien
+
+#### `app.py` - Production-Erweiterungen
+- Environment-Variable-Support via `python-dotenv`
+- Flask-Talisman Security-Headers-Middleware
+- `SESSION_COOKIE_SECURE` konfigurierbar
+- Production-Logging mit RotatingFileHandler
+- Health-Check-Endpoint `/health`
+- Custom Error-Handler (404, 500)
+- DEBUG-Mode via `FLASK_ENV` Environment-Variable
+
+#### `requirements.txt` - Neue Dependencies
+```
+gunicorn==21.2.0           # Production WSGI-Server
+python-dotenv==1.0.0       # Environment-Variable-Support
+Flask-Talisman==1.1.0      # Security-Headers-Middleware
+```
+
+#### `.gitignore` - Production-Ignorierung
+- `.env` - Environment-Konfiguration
+- `logs/` - Log-Verzeichnisse
+- `/var/log/beehivetracker/` - System-Logs
+
+### 🔒 Sicherheits-Features (Zusammenfassung)
+
+✅ **Passwort-Security**: pbkdf2:sha256 Hashing, 10+ Zeichen, Komplexitätsanforderungen  
+✅ **Account-Lockout**: 3 Fehlversuche = 30min Sperre  
+✅ **Rate-Limiting**: 10 Login-Versuche/Minute, 200 Requests/Tag  
+✅ **CSRF-Protection**: WTForms auf allen POST-Routen  
+✅ **SQL-Injection-Schutz**: SQLAlchemy ORM  
+✅ **File-Upload-Validation**: Whitelist, Größenlimit, Dateinamen-Sanitization  
+✅ **Security-Headers**: HSTS, X-Frame-Options, CSP, X-XSS-Protection  
+✅ **Session-Security**: httponly, samesite=Lax, secure (mit HTTPS)  
+✅ **Secret-Key-Management**: Auto-generiert, file-basiert  
+✅ **Production-Logging**: Strukturiert, rotierend, konfigurierbar  
+
+### 📋 Deployment-Checkliste
+
+1. ✅ `.env` aus `.env.example` erstellen und anpassen
+2. ✅ `DEBUG=False` und `FLASK_ENV=production` setzen
+3. ✅ `SESSION_COOKIE_SECURE=True` aktivieren (mit HTTPS)
+4. ✅ Admin-User via `setup_user.py` erstellen
+5. ✅ Dependencies installieren: `pip install -r requirements.txt`
+6. ✅ Systemd-Service installieren und aktivieren
+7. ✅ (Optional) Cloudflare Tunnel einrichten
+8. ✅ Health-Check testen: `curl http://localhost:5000/health`
+
+### ⚠️ Breaking Changes
+
+- **Environment-Variables erforderlich**: `.env`-Datei muss aus `.env.example` erstellt werden
+- **Production-Mode**: `DEBUG=True` standardmäßig deaktiviert in `.env.example`
+- **Log-Pfade**: Neue Standard-Log-Locations `/var/log/beehivetracker/`
+
+---
+
 ## [2025-12-17] - User-Verwaltung und Authentifizierung (UPDATED)
 
 ### 🔐 Sicherheit & Authentifizierung

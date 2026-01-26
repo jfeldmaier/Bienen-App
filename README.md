@@ -2,10 +2,13 @@
 
 A simple yet powerful web application to help beekeepers manage their bee colonies and track inspections with ease.
 
+**Production-ready** with user authentication, security hardening, and Cloudflare Tunnel support for secure remote access.
+
 ---
 
 ## Features
 
+### 🐝 Colony & Inspection Management
 *   **Colony Management:** Create, edit, and track all your bee colonies with queen marking colors and numbers.
 *   **Inspection Logs:** Record detailed inspection data for each colony, including:
     *   Queen status (seen/not seen)
@@ -19,29 +22,53 @@ A simple yet powerful web application to help beekeepers manage their bee coloni
 *   **Multi-Select Delete:** Select and delete multiple inspections at once with a confirmation dialog.
 *   **Detailed Views:** Click on any inspection to view comprehensive details.
 
+### 🔐 User Management & Security
+*   **Multi-User Support:** Separate databases for each user with isolated data
+*   **Secure Authentication:** pbkdf2:sha256 password hashing, 10+ character requirements
+*   **Account Lockout:** Protection against brute-force attacks (3 attempts = 30min lock)
+*   **Rate Limiting:** 10 login attempts per minute, 200 requests per day
+*   **Admin Interface:** User management for admins at `/admin/users`
+*   **Session Management:** 10-day sessions with automatic renewal on activity
+
+### 🚀 Production-Ready Deployment
+*   **Gunicorn WSGI Server:** Multi-worker production server
+*   **Security Headers:** HSTS, X-Frame-Options, CSP, X-XSS-Protection via Flask-Talisman
+*   **Environment Configuration:** `.env` file support for flexible deployment
+*   **Structured Logging:** Rotating log files with configurable levels
+*   **Health Check Endpoint:** `/health` for monitoring and load balancers
+*   **Systemd Integration:** Automatic start/stop/restart with crash recovery
+*   **Cloudflare Tunnel:** Secure access without port-forwarding or public IP
+
 ---
 
-## Getting Started
-
-Follow these instructions to get the application running on your local machine.
+## Quick Start (Development)
 
 ### Prerequisites
 
-Make sure you have Python 3 and `pip` installed.
+*   Python 3.9+
+*   pip and virtualenv
 
-### Installation & Setup
+### Installation
 
-1.  **Clone the repository and navigate into the project directory.**
-
-2.  **Create and activate a virtual environment:**
+1.  **Clone and setup:**
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    git clone https://github.com/yourusername/BeeHiveTracker.git
+    cd BeeHiveTracker
+    source bin/activate  # Activate existing venv
+    pip install -r requirements.txt
     ```
 
-3.  **Install the required dependencies:**
+2.  **Configure environment:**
     ```bash
-    pip install -r requirements.txt
+    cp .env.example .env
+    # Edit .env for development settings (DEBUG=True is default)
+    ```
+
+3.  **Setup admin user:**
+    ```bash
+    cp default_user.example.txt default_user.txt
+    nano default_user.txt  # Set USERNAME and PASSWORD
+    python setup_user.py
     ```
 
 4.  **Run the application:**
@@ -49,9 +76,27 @@ Make sure you have Python 3 and `pip` installed.
     python app.py
     ```
     
-    The database will be created automatically on first run.
+    Access at `http://127.0.0.1:5000`
 
-The application will be available at `http://127.0.0.1:5000`.
+---
+
+## Production Deployment
+
+**For production deployment on a server with Gunicorn, Systemd, and optional Cloudflare Tunnel:**
+
+📘 **See [DEPLOYMENT.md](DEPLOYMENT.md) for complete step-by-step instructions**
+
+📋 **Local Production Setup:** See [.github/PRODUCTION_SETUP.md](.github/PRODUCTION_SETUP.md) for locally-managed files
+
+Quick overview:
+1. Clone repo and install dependencies: `pip install -r requirements.txt`
+2. Configure `.env` with production settings (`DEBUG=False`, `SESSION_COOKIE_SECURE=True`)
+3. Setup admin user: `python setup_user.py`
+4. Install systemd service: `sudo cp beehivetracker.service /etc/systemd/system/` (local file, not in repo)
+5. Start service: `sudo systemctl start beehivetracker`
+6. (Optional) Setup Cloudflare Tunnel for secure remote access
+
+**Important:** Production-specific files (`.env`, `beehivetracker.service`, credentials, databases, logs) are kept locally and NOT committed to the repository for security.
 
 ---
 
