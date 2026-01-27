@@ -156,8 +156,8 @@ git ls-files | grep -E '(\.env$|secret_key|default_user|\.db$|\.cloudflared)'
 ```
 BeeHiveTracker (Public Repository)
 ├── .github/
-│   ├── copilot-instructions.md    (AI Agent Anweisungen)
-│   └── PRODUCTION_SETUP.md         (Diese Datei)
+│   ├── GIT_WORKFLOW.md              (Git Best Practices)
+│   └── PRODUCTION_SETUP.md          (Diese Datei)
 ├── templates/                       (HTML Templates)
 ├── static/                          (CSS, JS)
 ├── app.py                           (Flask Main)
@@ -180,6 +180,7 @@ BeeHiveTracker (Public Repository)
 ├── secret_key.txt                   (Flask Secret)
 ├── default_user.txt                 (Real Credentials)
 ├── beehivetracker.service           (Systemd Unit)
+├── .github/copilot-instructions.md  (AI Agent Instructions - Private)
 ├── var/                             (Runtime Data)
 │   ├── app-instance/                (Databases)
 │   ├── logs/                        (Application Logs)
