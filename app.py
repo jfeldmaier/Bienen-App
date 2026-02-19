@@ -126,6 +126,7 @@ if not DEBUG_MODE:
 if not DEBUG_MODE:
     Talisman(app,
         force_https=False,  # Cloudflare handhabt HTTPS
+        session_cookie_secure=app.config.get('SESSION_COOKIE_SECURE', False),  # Aus .env steuern
         strict_transport_security=True,
         strict_transport_security_max_age=31536000,  # 1 Jahr
         content_security_policy={
@@ -135,7 +136,6 @@ if not DEBUG_MODE:
             'img-src': ["'self'", 'data:'],
             'font-src': ["'self'", 'cdn.jsdelivr.net']
         },
-        content_security_policy_nonce_in=['script-src'],
         frame_options='DENY',
         x_xss_protection=True
     )
@@ -673,6 +673,29 @@ def volk_loeschen(volk_id):
     db.session.delete(volk)
     db.session.commit()
     return redirect(url_for('voelker_liste'))
+
+# Einzelnes Inspektionsbild löschen (AJAX)
+@app.route('/inspektion/bild/<int:image_id>/loeschen', methods=['POST'])
+@login_required
+def inspektion_bild_loeschen(image_id):
+    image = InspectionImage.query.get(image_id)
+    if not image:
+        return {'success': False, 'error': 'Bild nicht gefunden'}, 404
+    inspection = Inspection.query.get(image.inspection_id)
+    if inspection:
+        file_path = os.path.join(
+            app.config['UPLOAD_FOLDER'], 'inspections',
+            inspection.date.strftime('%Y%m%d'), image.filename
+        )
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                app.logger.warning(f'Konnte Bilddatei nicht löschen: {file_path} ({e})')
+    db.session.delete(image)
+    db.session.commit()
+    return {'success': True}
+
 
 # Inspektion löschen
 @app.route('/inspektion/<int:id>/loeschen', methods=['POST'])

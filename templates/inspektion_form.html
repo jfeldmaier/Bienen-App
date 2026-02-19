@@ -87,9 +87,35 @@
     <label for="notes">Beobachtungen</label>
   </div>
 
+  <!-- Bestehende Bilder anzeigen (nur beim Bearbeiten) -->
+  {% if bearbeiten is defined and bearbeiten and inspektion is defined and inspektion.images %}
+  <div class="mb-3">
+    <label class="form-label">📸 Vorhandene Bilder ({{ inspektion.images|length }})</label>
+    <div class="d-flex gap-2 flex-wrap">
+      {% for image in inspektion.images %}
+      <div class="position-relative border rounded p-1" style="max-width: 140px;" id="image-{{ image.id }}">
+        <a href="{{ url_for('uploaded_inspection_image', date=inspektion.date.strftime('%Y%m%d'), filename=image.filename) }}"
+           target="_blank" title="Bild in voller Größe anzeigen">
+          <img src="{{ url_for('uploaded_inspection_image', date=inspektion.date.strftime('%Y%m%d'), filename=image.filename) }}"
+               alt="Inspektionsfoto" class="img-thumbnail border-0"
+               style="width: 100%; height: auto; max-height: 100px; object-fit: cover;">
+        </a>
+        <button type="button" class="btn btn-danger btn-sm w-100 mt-1 btn-delete-image" style="font-size: 0.7rem;"
+                data-image-id="{{ image.id }}" data-filename="{{ image.filename }}">
+          🗑️ Löschen
+        </button>
+        <small class="d-block text-muted text-center" style="font-size: 0.7rem;">
+          {{ image.uploaded_at.strftime('%d.%m.%Y') }}
+        </small>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Inspektionsbilder hochladen -->
   <div class="mb-3">
-    <label for="images" class="form-label">📸 Inspektionsbilder (optional)</label>
+    <label for="images" class="form-label">📸 {% if bearbeiten is defined and bearbeiten %}Weitere Bilder hinzufügen{% else %}Inspektionsbilder (optional){% endif %}</label>
     <input type="file" name="images" id="images" class="form-control" multiple accept="image/*" 
            title="JPG, PNG, GIF, WebP bis 5 MB pro Bild">
     <small class="form-text text-muted d-block mt-1">
@@ -98,7 +124,7 @@
   </div>
 
   <!-- Button zum Einblenden der Zusatzfelder -->
-  <button type="button" class="btn btn-link btn-sm mb-3" id="toggle-extra-fields" onclick="toggleExtraFields()">
+  <button type="button" class="btn btn-link btn-sm mb-3" id="toggle-extra-fields">
     Weitere Felder anzeigen
   </button>
 
@@ -133,18 +159,42 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-function toggleExtraFields() {
+<script nonce="{{ csp_nonce() }}">
+document.getElementById('toggle-extra-fields').addEventListener('click', function() {
   var extra = document.getElementById('extra-fields');
-  var btn = document.getElementById('toggle-extra-fields');
   if (extra.style.display === 'none') {
     extra.style.display = 'block';
-    btn.textContent = 'Weitere Felder ausblenden';
+    this.textContent = 'Weitere Felder ausblenden';
   } else {
     extra.style.display = 'none';
-    btn.textContent = 'Weitere Felder anzeigen';
+    this.textContent = 'Weitere Felder anzeigen';
   }
-}
+});
+
+document.querySelectorAll('.btn-delete-image').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var imageId = this.getAttribute('data-image-id');
+    var filename = this.getAttribute('data-filename');
+    if (!confirm('Bild "' + filename + '" wirklich löschen?')) return;
+    this.disabled = true;
+    this.textContent = '...';
+    var self = this;
+    fetch('/inspektion/bild/' + imageId + '/loeschen', {
+      method: 'POST',
+      headers: {'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value}
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success) {
+        var el = document.getElementById('image-' + imageId);
+        if (el) el.remove();
+      } else {
+        alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+      }
+    })
+    .catch(function() { alert('Netzwerkfehler beim Löschen des Bildes.'); });
+  });
+});
 </script>
 {% endblock %}
 {% endblock %}

@@ -4,6 +4,19 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 
 ---
 
+## [2026-02-19] - Login- und Bild-Workflow Fixes
+
+### 🔐 Login-Session
+- Flask-Talisman respektiert nun `SESSION_COOKIE_SECURE` aus der `.env`
+- CSP-Nonce-Requirement entfernt, damit bestehende Inline-Skripte funktionieren
+
+### 🖼️ Bilder & Inspektionen
+- Bildpfade auf Volk-Detailseite konsistent über Inspektionsdatum (`YYYYMMDD`)
+- Bearbeitungsformular zeigt vorhandene Bilder und erlaubt Löschen per Button
+- Neue AJAX-Route zum Löschen einzelner Inspektionsbilder (inkl. Dateisystem)
+- Lösch-Button deaktiviert sich nach Klick, 404 liefert JSON statt HTML
+
+
 ## [2026-01-26] - Production-Deployment & Security-Hardening
 
 ### 🚀 Production-Ready Deployment

@@ -149,10 +149,10 @@
             <div class="d-flex gap-2 flex-wrap mt-2">
                 {% for image in insp.images %}
                 <div class="position-relative" style="max-width: 120px;">
-                    <a href="{{ url_for('uploaded_inspection_image', date=image.uploaded_at.strftime('%Y%m%d'), filename=image.filename) }}"
+                    <a href="{{ url_for('uploaded_inspection_image', date=insp.date.strftime('%Y%m%d'), filename=image.filename) }}"
                        target="_blank" 
                        title="Bild in voller Größe anzeigen">
-                        <img src="{{ url_for('uploaded_inspection_image', date=image.uploaded_at.strftime('%Y%m%d'), filename=image.filename) }}" 
+                        <img src="{{ url_for('uploaded_inspection_image', date=insp.date.strftime('%Y%m%d'), filename=image.filename) }}" 
                              alt="Inspektionsfoto" 
                              class="img-thumbnail" 
                              style="width: 100%; height: auto; max-height: 100px; object-fit: cover;"
