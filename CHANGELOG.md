@@ -4,6 +4,13 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 
 ---
 
+## [2026-04-19] - Inspektionsliste: Beobachtungen vollständig anzeigen
+
+### 🐝 UI-Verbesserung
+- Freitext-Beobachtungen (`notes`) in der Inspektionsliste werden nun vollständig und mehrzeilig angezeigt (zuvor nach einer Zeile abgeschnitten)
+
+---
+
 ## [2026-02-19] - Login- und Bild-Workflow Fixes
 
 ### 🔐 Login-Session
