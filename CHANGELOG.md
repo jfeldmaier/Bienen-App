@@ -4,6 +4,15 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 
 ---
 
+## [2026-05-19] - Völkerverwaltung: Neues Volk & Entstehungsart
+
+### 🐝 Neue Funktion
+- **"Neues Volk"-Button** in der Völkerliste (`/voelker`) ergänzt — Direktzugang zum Anlegen eines neuen Bienenvolks
+- **Entstehungsart** wird jetzt in der Völkerliste als eigene Spalte angezeigt (Schwarm, Ableger, Vereinigung, Kauf, Zucht, Sonstiges)
+- **Entstehungsart** wird in der Volk-Detailansicht im Steckbrief angezeigt
+
+---
+
 ## [2026-04-19] - Inspektionsliste: Beobachtungen vollständig anzeigen
 
 ### 🐝 UI-Verbesserung
