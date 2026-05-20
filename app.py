@@ -212,6 +212,16 @@ def utility_processor():
 with app.app_context():
     db.create_all()  # Erstellt alle Tabellen inkl. users (via bind)
 
+    # SQLite-Migration: neue Spalten hinzufügen, falls noch nicht vorhanden
+    try:
+        with db.engine.connect() as conn:
+            existing_cols = [row[1] for row in conn.execute(db.text("PRAGMA table_info(bee_colony)")).fetchall()]
+            if 'entstehungsart' not in existing_cols:
+                conn.execute(db.text("ALTER TABLE bee_colony ADD COLUMN entstehungsart VARCHAR(30)"))
+                conn.commit()
+    except Exception as _mig_err:
+        app.logger.warning(f'DB-Migration übersprungen: {_mig_err}')
+
 
 # ========================================
 # HEALTH CHECK & ERROR HANDLER
@@ -414,19 +424,30 @@ def home():
 @login_required
 def neues_volk():
     form = BeeColonyForm()
+    # Sammle alle bekannten Standorte für das Datalist-Dropdown
+    # (wird an das Template übergeben und ermöglicht Autocompletion beim Eingeben)
+    known_locations = sorted(set(
+        loc for loc in BeeColony.query.with_entities(BeeColony.location).all() 
+        if loc[0]  # Filtere leere Einträge
+    ), key=lambda x: x[0])  # Alphabetisch sortieren
+    known_locations = [loc[0] for loc in known_locations]
+    
     if form.validate_on_submit():
         volk = BeeColony(
             name=form.name.data,
             location=form.location.data,
             queen_birth=form.queen_birth.data,
+            queen_color=form.queen_color.data or None,
+            queen_number=form.queen_number.data,
             status=form.status.data,
+            entstehungsart=form.entstehungsart.data or None,
             notes=form.notes.data
         )
         db.session.add(volk)
         db.session.commit()
         flash('✅ Neues Bienenvolk wurde erfolgreich gespeichert!', 'success')
         return redirect(url_for('home'))
-    return render_template('volk_form.html', form=form)
+    return render_template('volk_form.html', form=form, known_locations=known_locations)
 
 
 
@@ -658,11 +679,27 @@ def batch_inspektion():
 def volk_bearbeiten(volk_id):
     volk = BeeColony.query.get_or_404(volk_id)
     form = BeeColonyForm(obj=volk)
+    # Sammle alle bekannten Standorte für das Datalist-Dropdown
+    # (wird an das Template übergeben und ermöglicht Autocompletion beim Eingeben)
+    known_locations = sorted(set(
+        loc for loc in BeeColony.query.with_entities(BeeColony.location).all() 
+        if loc[0]  # Filtere leere Einträge
+    ), key=lambda x: x[0])  # Alphabetisch sortieren
+    known_locations = [loc[0] for loc in known_locations]
+    
     if form.validate_on_submit():
-        form.populate_obj(volk)
+        volk.name = form.name.data
+        volk.location = form.location.data
+        volk.queen_birth = form.queen_birth.data
+        volk.queen_color = form.queen_color.data or None
+        volk.queen_number = form.queen_number.data
+        volk.status = form.status.data
+        volk.entstehungsart = form.entstehungsart.data or None
+        volk.notes = form.notes.data
         db.session.commit()
+        flash('✅ Volk wurde erfolgreich gespeichert!', 'success')
         return redirect(url_for('volk_detail', volk_id=volk.id))
-    return render_template('volk_form.html', form=form, bearbeiten=True)
+    return render_template('volk_form.html', form=form, bearbeiten=True, volk=volk, known_locations=known_locations)
 
 
 # Bienenvolk löschen

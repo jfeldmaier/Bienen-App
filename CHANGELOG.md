@@ -4,6 +4,30 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 
 ---
 
+## [2026-05-20] - Feature: Standort-Autocomplete mit bekannten Standorten
+
+### ✨ Neue Funktion
+- **Standort-Autocomplete** beim Anlegen und Bearbeiten von Völkern
+  - HTML5 `<datalist>`-Element zeigt alle bekannten Standorte als Dropdown-Vorschläge
+  - Benutzer können einen bekannten Standort auswählen oder frei einen neuen eingeben
+  - Standorte werden alphabetisch sortiert angezeigt
+  - Implementierung: `app.py` (`neues_volk`, `volk_bearbeiten`), `templates/volk_form.html`
+
+---
+
+## [2026-05-19] - Bugfix: Bearbeiten-Funktion für Bienenvölker
+
+### 🐛 Bugfixes
+- **Bearbeiten-Schaltfläche repariert** (`/voelker` und `/volk/<id>`): Drei Ursachen behoben:
+  1. `volk_form.html`: Zurück-Link verwendete `form._obj.id` (kein WTForms-Attribut) → ersetzt durch `volk.id`
+  2. `app.py` (`volk_bearbeiten`): Template-Kontext fehlte `volk`-Objekt → wird jetzt übergeben
+  3. `forms.py` (`BeeColonyForm`): `queen_color` SelectField ohne leere Option → WTForms 3.x `pre_validate()` schlug bei Völkern ohne Farbe still fehl → `validate_choice=False` + leere Option ergänzt
+- **Feldwerte explizit gesetzt** in `volk_bearbeiten`: Leere Strings werden als `None` in die DB geschrieben (statt leerer String), konsistent mit `neues_volk`
+- **Gunicorn-Neustart** nach Code-Änderungen (lief 2 Tage mit altem Code ohne `entstehungsart`-Feld)
+- **Flash-Meldung** bei erfolgreichem Speichern ergänzt
+
+---
+
 ## [2026-05-19] - Völkerverwaltung: Neues Volk & Entstehungsart
 
 ### 🐝 Neue Funktion
