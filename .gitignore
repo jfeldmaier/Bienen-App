@@ -21,6 +21,13 @@ instance/
 *.db
 *.sqlite
 *.sqlite3
+# SQLite-Nebendateien (Journal/WAL enthalten ebenfalls DB-Inhalte)
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 var/app-instance/
 
 # Environment variables
@@ -56,12 +63,13 @@ var/logs/
 beehivetracker.service
 secret_key.txt
 default_user.txt
-default_user.example.txt
 
 # Credentials & Sensitive Data
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+*.pem
+*.key
 
 # Production Deployment
 migrations/

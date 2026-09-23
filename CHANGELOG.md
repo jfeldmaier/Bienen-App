@@ -4,6 +4,16 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 
 ---
 
+## [2026-09-23] - Security: .gitignore gehärtet
+
+### 🔒 Sicherheit
+- **SQLite-Nebendateien** (`*.db-journal`, `*.db-wal`, `*.db-shm`, analog für `*.sqlite`) werden ignoriert – sie enthalten ebenfalls DB-Inhalte
+- **Alle `.env`-Varianten** (`.env.*`, z. B. `.env.bak`) werden ignoriert, nur `.env.example` bleibt im Repo
+- **Schlüssel-/Zertifikatsdateien** (`*.pem`, `*.key`) werden ignoriert
+- `default_user.example.txt` aus `.gitignore` entfernt – die Vorlage ist öffentlich und war bereits getrackt
+
+---
+
 ## [2026-05-20] - Feature: Standort-Autocomplete mit bekannten Standorten
 
 ### ✨ Neue Funktion
