@@ -40,6 +40,7 @@ class BeeColony(db.Model):
         queen_color = db.Column(db.String(10))  # Farbe der Königinnenmarkierung
         queen_number = db.Column(db.String(10))  # Nummer der Königin
         status = db.Column(db.String(20))
+        entstehungsart = db.Column(db.String(30))  # Art der Entstehung (Schwarm, Ableger, ...)
         notes = db.Column(db.Text)
         inspections = db.relationship('Inspection', backref='colony', cascade='all, delete-orphan')
 

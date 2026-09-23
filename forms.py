@@ -44,14 +44,25 @@ class BeeColonyForm(FlaskForm):
         location = StringField('Standort', validators=[Optional()])
         queen_birth = DateField('Geburtsdatum der Königin', format='%Y-%m-%d', validators=[Optional()])
         queen_color = SelectField('Farbe der Königinnenmarkierung', 
-                                choices=[('white', 'Weiß'), 
+                                choices=[('', '— keine —'),
+                                        ('white', 'Weiß'), 
                                         ('yellow', 'Gelb'), 
                                         ('red', 'Rot'), 
                                         ('green', 'Grün'), 
                                         ('blue', 'Blau')], 
-                                validators=[Optional()])
+                                validators=[Optional()],
+                                validate_choice=False)
         queen_number = StringField('Nummer der Königin', validators=[Optional()])
         status = SelectField('Status', choices=[('stark', 'Stark'), ('mittel', 'Mittel'), ('schwach', 'Schwach')], validators=[Optional()])
+        entstehungsart = SelectField('Entstehungsart', 
+                                choices=[('', '— bitte wählen —'),
+                                         ('schwarm', 'Schwarm'),
+                                         ('ableger', 'Ableger'),
+                                         ('vereinigung', 'Vereinigung'),
+                                         ('kauf', 'Kauf'),
+                                         ('zucht', 'Zucht'),
+                                         ('sonstiges', 'Sonstiges')],
+                                validators=[Optional()])
         notes = TextAreaField('Notizen', validators=[Optional()])
         submit = SubmitField('Speichern')
 

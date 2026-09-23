@@ -1,9 +1,9 @@
 <!-- templates/volk_form.html -->
 {% extends "base.html" %}
-{% block title %}Neues Volk · Bienen-App{% endblock %}
+{% block title %}{% if bearbeiten %}Volk bearbeiten{% else %}Neues Volk{% endif %} · Bienen-App{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">🐝 Neues Bienenvolk</h1>
+<h1 class="h3 mb-3">🐝 {% if bearbeiten %}Volk bearbeiten{% else %}Neues Bienenvolk anlegen{% endif %}</h1>
 <form method="POST" class="needs-validation" novalidate>
   {{ form.hidden_tag() }}
 
@@ -12,8 +12,15 @@
     <label for="name">Name</label>
   </div>
 
+  <!-- Standort-Feld mit HTML5 Datalist-Dropdown -->
+  <!-- Ermöglicht Autocompletion aus bekannten Standorten + freie Eingabe neuer Standorte -->
   <div class="form-floating mb-3">
-    {{ form.location(class="form-control", id="location", placeholder="Standort") }}
+    <input class="form-control" id="location" name="location" placeholder="Standort" type="text" value="{{ form.location.data or '' }}" list="known-locations" autocomplete="off">
+    <datalist id="known-locations">
+      {% for loc in known_locations %}
+        <option value="{{ loc }}">
+      {% endfor %}
+    </datalist>
     <label for="location">Standort</label>
   </div>
 
@@ -47,6 +54,12 @@
     {{ form.status(class="form-select", id="status") }}
   </div>
 
+  <div class="mb-3">
+    <label for="entstehungsart" class="form-label">Entstehungsart</label>
+    {{ form.entstehungsart(class="form-select", id="entstehungsart") }}
+    <div class="form-text">Wie ist dieses Volk entstanden?</div>
+  </div>
+
   <div class="form-floating mb-3">
     {{ form.notes(class="form-control", placeholder="Notizen") }}
     <label for="notes">Notizen</label>
@@ -75,8 +88,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-  <button type="submit" class="btn btn-primary">➕ Volk speichern</button>
-  <a href="{{ url_for('home') }}" class="btn btn-secondary">Zurück</a>
+  <button type="submit" class="btn btn-primary">{% if bearbeiten %}💾 Änderungen speichern{% else %}➕ Volk anlegen{% endif %}</button>
+  <a href="{% if bearbeiten %}{{ url_for('volk_detail', volk_id=volk.id) }}{% else %}{{ url_for('voelker_liste') }}{% endif %}" class="btn btn-secondary">Zurück</a>
 </form>
 {% endblock %}
 

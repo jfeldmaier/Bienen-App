@@ -32,6 +32,8 @@
                                                     </div>
                                                 </form>
                                         </dd>
+                    <dt class="col-sm-5">Entstehungsart</dt>
+                    <dd class="col-sm-7">{{ {'schwarm': 'Schwarm', 'ableger': 'Ableger', 'vereinigung': 'Vereinigung', 'kauf': 'Kauf', 'zucht': 'Zucht', 'sonstiges': 'Sonstiges'}.get(volk.entstehungsart, '—') }}</dd>
                     <dt class="col-sm-5">Notizen</dt>
                     <dd class="col-sm-7">{{ volk.notes or '—' }}</dd>
                 </dl>
